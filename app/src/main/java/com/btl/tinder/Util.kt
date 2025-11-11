@@ -77,10 +77,16 @@ fun NotificationMessage(vm: TCViewModel) {
 @Composable
 fun CheckSignedIn(vm: TCViewModel, navController: NavController) {
     val alreadyLoggedIn = remember { mutableStateOf(false) }
-    val signedIn = vm.signedIn.value
-    if (signedIn && !alreadyLoggedIn.value) {
+    val signedIn = vm.signInState.value
+    if (signedIn == SignInState.SIGNED_IN_FROM_LOGIN && !alreadyLoggedIn.value) {
         alreadyLoggedIn.value = true
         navController.navigate(DestinationScreen.Profile.route) {
+            popUpTo(0)
+        }
+    }
+    if(signedIn == SignInState.SIGNED_IN_FROM_SIGNUP && !alreadyLoggedIn.value) {
+        alreadyLoggedIn.value = true
+        navController.navigate(DestinationScreen.FTSetup.route) {
             popUpTo(0)
         }
     }

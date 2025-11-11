@@ -22,6 +22,12 @@ import javax.inject.Inject
 import android.net.Uri
 import java.util.UUID
 
+enum class SignInState {
+    SIGNED_IN_FROM_LOGIN,
+    SIGNED_IN_FROM_SIGNUP,
+    SIGNED_OUT
+}
+
 @HiltViewModel
 class TCViewModel @Inject constructor(
     val auth: FirebaseAuth,
@@ -31,18 +37,23 @@ class TCViewModel @Inject constructor(
 
     val inProgress = mutableStateOf(false)
     val popupNotification = mutableStateOf<Event<String>?>(null)
-    val signedIn = mutableStateOf(false)
+    //val signedIn = mutableStateOf(false)
+    val signInState = mutableStateOf(SignInState.SIGNED_OUT)
     val userData = mutableStateOf<UserData?>(null)
 
     val matchProfiles = mutableStateOf<List<UserData>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
 
     init {
-        //auth.signOut()
         val currentUser = auth.currentUser
-        signedIn.value = currentUser != null
-        currentUser?.uid?.let { uid ->
-            getUserData(uid)
+        // If a user is already logged in, treat it as a normal login flow
+        if (currentUser != null) {
+            signInState.value = SignInState.SIGNED_IN_FROM_LOGIN
+            currentUser.uid.let { uid ->
+                getUserData(uid)
+            }
+        } else {
+            signInState.value = SignInState.SIGNED_OUT
         }
     }
 
@@ -58,22 +69,18 @@ class TCViewModel @Inject constructor(
                 if (it.isEmpty) {
                     auth.createUserWithEmailAndPassword(email, pass)
                         .addOnCompleteListener {task ->
-                            if (task.isSuccessful) {
-                                createOrUpdateProfile(username = username)
-                                navController.navigate(DestinationScreen.Login.route)
-                            }
-
                             if (task.isSuccessful){
-                                signedIn.value = true
                                 createOrUpdateProfile(username = username)
+                                signInState.value = SignInState.SIGNED_IN_FROM_SIGNUP
                             }
-
-
-                            else
+                            else {
+                                inProgress.value = false
                                 handleException(task.exception, "Signup failed")
+                            }
                         }
                 }
                 else {
+                    inProgress.value = false
                     handleException(customMessage = "Username already exists")
                 }
                 inProgress.value = false
@@ -92,7 +99,7 @@ class TCViewModel @Inject constructor(
         auth.signInWithEmailAndPassword(email, pass)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    signedIn.value = true
+                    signInState.value = SignInState.SIGNED_IN_FROM_LOGIN
                     inProgress.value = false
                     auth.currentUser?.uid?.let {
                         getUserData(it)
@@ -173,7 +180,7 @@ class TCViewModel @Inject constructor(
 
     fun onLogout() {
         auth.signOut()
-        signedIn.value = false
+        signInState.value = SignInState.SIGNED_OUT
         userData.value = null
         popupNotification.value = Event("Logged out")
     }
@@ -236,7 +243,6 @@ class TCViewModel @Inject constructor(
             Gender.ANY -> db.collection(COLLECTION_USER)
         }
         val userGender = Gender.valueOf(g)
-
 
         cardsQuery.where(
             com.google.firebase.firestore.Filter.and(
