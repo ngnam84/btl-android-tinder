@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -144,14 +146,17 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name", fontFamily = deliusFontFamily) },
+                    label = { Text("Name", fontFamily = deliusFontFamily, color = Color.Black) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.DarkGray,
-                        unfocusedBorderColor = Color.Gray,
-                        focusedLabelColor = Color.DarkGray,
-                        unfocusedLabelColor = Color.Gray
+                        focusedBorderColor = Color.Black,
+                        unfocusedBorderColor = Color.Black,
+                        cursorColor = Color.Black,
+                        focusedLabelColor = Color.Black,
+                        unfocusedLabelColor = Color.Gray,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     )
                 )
 
@@ -160,17 +165,20 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                 OutlinedTextField(
                     value = bio,
                     onValueChange = { bio = it },
-                    label = { Text("Bio", fontFamily = deliusFontFamily) },
+                    label = { Text("Bio", fontFamily = deliusFontFamily, color = Color.Black) },
                     singleLine = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
                     textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.DarkGray,
-                        unfocusedBorderColor = Color.Gray,
-                        focusedLabelColor = Color.DarkGray,
-                        unfocusedLabelColor = Color.Gray
+                        focusedBorderColor = Color.Black,
+                        unfocusedBorderColor = Color.Black,
+                        cursorColor = Color.Black,
+                        focusedLabelColor = Color.Black,
+                        unfocusedLabelColor = Color.Gray,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     )
                 )
 
@@ -192,11 +200,11 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 onClick = { gender = Gender.MALE },
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = Color(0xFFFF789B),
-                                    unselectedColor = Color.Gray
+                                    unselectedColor = Color.Black
                                 )
                             )
                             Text(
-                                text = "Man",
+                                text = "Male",
                                 modifier = Modifier.clickable { gender = Gender.MALE },
                                 fontFamily = deliusFontFamily,
                                 color = Color.Black
@@ -209,11 +217,11 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 onClick = { gender = Gender.FEMALE },
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = Color(0xFFFF789B),
-                                    unselectedColor = Color.Gray
+                                    unselectedColor = Color.Black
                                 )
                             )
                             Text(
-                                text = "Woman",
+                                text = "Female",
                                 modifier = Modifier.clickable { gender = Gender.FEMALE },
                                 fontFamily = deliusFontFamily,
                                 color = Color.Black
@@ -245,7 +253,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 onClick = { genderPreference = Gender.MALE },
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = Color(0xFFFF789B),
-                                    unselectedColor = Color.Gray
+                                    unselectedColor = Color.Black
                                 )
                             )
                             Text(
@@ -262,7 +270,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 onClick = { genderPreference = Gender.FEMALE },
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = Color(0xFFFF789B),
-                                    unselectedColor = Color.Gray
+                                    unselectedColor = Color.Black
                                 )
                             )
                             Text(
@@ -279,7 +287,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 onClick = { genderPreference = Gender.ANY },
                                 colors = RadioButtonDefaults.colors(
                                     selectedColor = Color(0xFFFF789B),
-                                    unselectedColor = Color.Gray
+                                    unselectedColor = Color.Black
                                 )
                             )
                             Text(
@@ -374,7 +382,13 @@ fun ProfileImage1(imageUrl : String?,vm: TCViewModel) {
             launcher.launch("image/*")
         },horizontalAlignment = Alignment.CenterHorizontally)
         {
-            Card(shape = CircleShape,modifier = Modifier.padding(8.dp).size(200.dp)){
+            Card(shape = CircleShape,modifier = Modifier.padding(8.dp).size(200.dp)
+                .border(
+                    width = 5.dp,
+                    color = Color(0xFF744D8C),
+                    shape = CircleShape
+                ),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6)) ){
                 CommonImage(data = imageUrl)
             }
             Text("Change profile picture", fontFamily = deliusFontFamily, color = Color.Black, fontWeight = FontWeight.Bold)
