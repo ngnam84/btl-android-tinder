@@ -1,33 +1,31 @@
 package com.btl.tinder
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
-import com.btl.tinder.data.COLLECTION_CHAT
-import com.btl.tinder.data.COLLECTION_USER
-import com.btl.tinder.data.ChatData
-import com.btl.tinder.data.ChatUser
-import com.btl.tinder.data.Event
-import com.btl.tinder.data.UserData
+import com.btl.tinder.data.*
 import com.btl.tinder.ui.Gender
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.util.logging.Filter
-import javax.inject.Inject
-import android.net.Uri
+import io.getstream.chat.android.client.ChatClient
 import java.util.UUID
+import javax.inject.Inject
 
 @HiltViewModel
 class TCViewModel @Inject constructor(
     val auth: FirebaseAuth,
     val db: FirebaseFirestore,
-    val storage: FirebaseStorage
-): ViewModel() {
+    val storage: FirebaseStorage,
+    private val chatClient: ChatClient
+) : ViewModel() {
 
     val inProgress = mutableStateOf(false)
     val popupNotification = mutableStateOf<Event<String>?>(null)
@@ -38,7 +36,6 @@ class TCViewModel @Inject constructor(
     val inProgressProfiles = mutableStateOf(false)
 
     init {
-        //auth.signOut()
         val currentUser = auth.currentUser
         signedIn.value = currentUser != null
         currentUser?.uid?.let { uid ->
@@ -46,37 +43,63 @@ class TCViewModel @Inject constructor(
         }
     }
 
+    // ---------------------- AUTH & USER ----------------------
+
     fun onSignup(username: String, email: String, pass: String, navController: NavController) {
-        if (username.isEmpty() or email.isEmpty() or pass.isEmpty()) {
+        if (username.isEmpty() || email.isEmpty() || pass.isEmpty()) {
             handleException(customMessage = "Please fill in all fields")
             return
         }
+
         inProgress.value = true
         db.collection(COLLECTION_USER).whereEqualTo("username", username)
             .get()
-            .addOnSuccessListener {
-                if (it.isEmpty) {
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
                     auth.createUserWithEmailAndPassword(email, pass)
-                        .addOnCompleteListener {task ->
+                        .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                createOrUpdateProfile(username = username)
-                                navController.navigate(DestinationScreen.Login.route)
-                            }
+                                val firebaseUser = auth.currentUser
+                                if (firebaseUser == null) {
+                                    handleException(customMessage = "Firebase user is null after signup")
+                                    return@addOnCompleteListener
+                                }
 
-                            if (task.isSuccessful){
-                                signedIn.value = true
-                                createOrUpdateProfile(username = username)
-                            }
+                                firebaseUser.getIdToken(true).addOnSuccessListener {
+                                    createOrUpdateProfile(username = username)
 
+                                    // ✅ Lấy token từ Cloud Function
+                                    getStreamToken { streamToken ->
+                                        val user = io.getstream.chat.android.models.User(
+                                            id = firebaseUser.uid,
+                                            name = username,
+                                            image = ""
+                                        )
 
-                            else
+                                        chatClient.connectUser(user, streamToken).enqueue { result ->
+                                            if (result.isSuccess) {
+                                                Log.d("GetStream", "✅ Connected to Stream after signup!")
+                                            } else {
+                                                Log.e("GetStream", "❌ Stream connect failed")
+                                            }
+                                        }
+                                    }
+
+                                    signedIn.value = true
+                                    navController.navigate(DestinationScreen.Login.route)
+                                }.addOnFailureListener {
+                                    handleException(it, "Could not refresh Firebase token")
+                                }
+
+                            } else {
                                 handleException(task.exception, "Signup failed")
+                            }
+                            inProgress.value = false
                         }
-                }
-                else {
+                } else {
                     handleException(customMessage = "Username already exists")
+                    inProgress.value = false
                 }
-                inProgress.value = false
             }
             .addOnFailureListener {
                 handleException(it)
@@ -84,26 +107,99 @@ class TCViewModel @Inject constructor(
     }
 
     fun onLogin(email: String, pass: String) {
-        if (email.isEmpty() or pass.isEmpty()) {
+        if (email.isEmpty() || pass.isEmpty()) {
             handleException(customMessage = "Please fill in all fields")
             return
         }
+
         inProgress.value = true
         auth.signInWithEmailAndPassword(email, pass)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    signedIn.value = true
-                    inProgress.value = false
-                    auth.currentUser?.uid?.let {
-                        getUserData(it)
+                    val firebaseUser = auth.currentUser
+                    if (firebaseUser == null) {
+                        handleException(customMessage = "Firebase user is null after login")
+                        return@addOnCompleteListener
                     }
-                } else
+
+                    firebaseUser.getIdToken(true)
+                        .addOnSuccessListener {
+                            signedIn.value = true
+                            inProgress.value = false
+                            getUserData(firebaseUser.uid)
+
+                            getStreamToken { streamToken ->
+                                val user = io.getstream.chat.android.models.User(
+                                    id = firebaseUser.uid,
+                                    name = userData.value?.username ?: "Unknown",
+                                    image = userData.value?.imageUrl ?: ""
+                                )
+
+                                chatClient.connectUser(user, streamToken).enqueue { result ->
+                                    if (result.isSuccess) {
+                                        Log.d("GetStream", "✅ Connected to Stream after login!")
+                                    } else {
+                                        Log.e("GetStream", "❌ Stream connect failed")
+                                    }
+                                }
+                            }
+                        }
+                        .addOnFailureListener {
+                            handleException(it, "Could not refresh Firebase token")
+                        }
+
+                } else {
                     handleException(task.exception, "Login failed")
+                }
             }
             .addOnFailureListener {
                 handleException(it, "Login failed")
             }
     }
+
+    // ---------------------- STREAM TOKEN FIX ----------------------
+
+    fun getStreamToken(onComplete: (String) -> Unit) {
+        val user = auth.currentUser
+        if (user == null) {
+            handleException(customMessage = "No Firebase user logged in.")
+            return
+        }
+
+        // Làm mới token Firebase trước khi gọi function
+        user.getIdToken(true)
+            .addOnSuccessListener {
+                Log.d("GetStreamToken", "✅ Firebase ID token refreshed successfully.")
+
+                // ⚡ Chỉ định region asia-east2
+                val functions = FirebaseFunctions.getInstance("asia-east2")
+
+                functions
+                    .getHttpsCallable("ext-auth-chat-getStreamUserToken") // Dùng tên function đúng
+                    .call()
+                    .addOnSuccessListener { result ->
+                        val token = result.data as? String
+                        if (token != null) {
+                            Log.d("GetStreamToken", "✅ Received Stream token successfully.")
+                            onComplete(token)
+                        } else {
+                            Log.e("GetStreamToken", "❌ Token returned is null or invalid.")
+                            handleException(customMessage = "Invalid Stream token response.")
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("GetStreamToken", "❌ Error calling function: ${e.message}", e)
+                        handleException(e, "Error calling GetStream token function.")
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("GetStreamToken", "❌ Failed to refresh Firebase token: ${e.message}", e)
+                handleException(e, "Failed to refresh Firebase token.")
+            }
+    }
+
+
+    // ---------------------- USER DATA & PROFILE ----------------------
 
     private fun createOrUpdateProfile(
         name: String? = null,
@@ -129,7 +225,7 @@ class TCViewModel @Inject constructor(
             db.collection(COLLECTION_USER).document(uid)
                 .get()
                 .addOnSuccessListener {
-                    if (it.exists()) //Update
+                    if (it.exists()) {
                         it.reference.update(userData.toMap())
                             .addOnSuccessListener {
                                 this.userData.value = userData
@@ -140,7 +236,7 @@ class TCViewModel @Inject constructor(
                                 handleException(it, "Cannot update user")
                                 inProgress.value = false
                             }
-                    else { //Create new
+                    } else {
                         db.collection(COLLECTION_USER).document(uid).set(userData)
                         inProgress.value = false
                         getUserData(uid)
@@ -162,28 +258,31 @@ class TCViewModel @Inject constructor(
                     handleException(error, "Cannot get user data")
                 }
                 if (value != null) {
-                    val user = value.toObject(UserData::class.java)
+                    val user = value.toObject<UserData>()
                     userData.value = user
                     inProgress.value = false
-                    Log.d("TCViewModel", "User data loaded: ${userData.value}")
                     populateCards()
                 }
             }
     }
 
+    // ---------------------- OTHER LOGIC ----------------------
+
     fun onLogout() {
+        chatClient.disconnect(flushPersistence = true)
         auth.signOut()
         signedIn.value = false
         userData.value = null
         popupNotification.value = Event("Logged out")
     }
+
     fun updateProfileData(
         name: String,
         username: String,
         bio: String,
         gender: Gender,
         genderPreference: Gender
-    ){
+    ) {
         createOrUpdateProfile(
             name = name,
             username = username,
@@ -192,7 +291,8 @@ class TCViewModel @Inject constructor(
             genderPreference = genderPreference
         )
     }
-    private fun uploadImage(uri: Uri, onImageUploaded: (Uri) -> Unit){
+
+    private fun uploadImage(uri: Uri, onImageUploaded: (Uri) -> Unit) {
         inProgress.value = true
         val storageRef = storage.reference
         val uuid = UUID.randomUUID()
@@ -206,68 +306,35 @@ class TCViewModel @Inject constructor(
             .addOnFailureListener {
                 handleException(it)
                 inProgress.value = false
-
             }
     }
-    fun uploadProfileImage(uri: Uri){
-        uploadImage(uri){
+
+    fun uploadProfileImage(uri: Uri) {
+        uploadImage(uri) {
             createOrUpdateProfile(imageUrl = it.toString())
         }
     }
 
     private fun handleException(exception: Exception? = null, customMessage: String = "") {
         Log.e("LoveMatch", "Exception", exception)
-        exception?.printStackTrace()
-        val errorMsg = exception?.localizedMessage ?: ""
-        val message = if (customMessage.isEmpty()) errorMsg else "$customMessage: $errorMsg"
+        val message = customMessage.ifEmpty { exception?.localizedMessage ?: "Unknown error" }
         popupNotification.value = Event(message)
         inProgress.value = false
     }
 
-    private fun populateCards1() {
-        inProgressProfiles.value = true
+    // ---------------------- MATCHING ----------------------
 
-        val g = if (userData.value?.gender.isNullOrEmpty()) "ANY" else userData.value!!.gender!!.uppercase()
-        val gPref = if (userData.value?.genderPreference.isNullOrEmpty()) "ANY" else userData.value!!.genderPreference!!.uppercase()
+    private fun populateCards() {
+        inProgressProfiles.value = true
+        val g = userData.value?.gender?.uppercase() ?: "ANY"
+        val gPref = userData.value?.genderPreference?.uppercase() ?: "ANY"
 
         val cardsQuery = when (Gender.valueOf(gPref)) {
             Gender.MALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.MALE)
             Gender.FEMALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.FEMALE)
             Gender.ANY -> db.collection(COLLECTION_USER)
         }
-        val userGender = Gender.valueOf(g)
 
-
-        cardsQuery.where(
-            com.google.firebase.firestore.Filter.and(
-                com.google.firebase.firestore.Filter.notEqualTo("userId", userData.value?.userId),
-                com.google.firebase.firestore.Filter.or(
-                    com.google.firebase.firestore.Filter.equalTo("genderPreference", userGender),
-                    com.google.firebase.firestore.Filter.equalTo("genderPreference", Gender.ANY)
-                )
-            )
-        )
-    }
-
-    private fun populateCards() {
-        inProgressProfiles.value = true
-        Log.d("TCViewModel", "populateCards called. Current User Data: ${userData.value}")
-
-        val g = if (userData.value?.gender.isNullOrEmpty()) "ANY"
-        else userData.value!!.gender!!.uppercase()
-        val gPref = if (userData.value?.genderPreference.isNullOrEmpty()) "ANY"
-        else userData.value!!.genderPreference!!.uppercase()
-
-        Log.d("TCViewModel", "User Gender: $g, Preference: $gPref")
-
-        val cardsQuery =
-            when (Gender.valueOf(gPref)) {
-                Gender.MALE -> db.collection(COLLECTION_USER)
-                    .whereEqualTo("gender", Gender.MALE)
-                Gender.FEMALE -> db.collection(COLLECTION_USER)
-                    .whereEqualTo("gender", Gender.FEMALE)
-                Gender.ANY -> db.collection(COLLECTION_USER)
-            }
         val userGender = Gender.valueOf(g)
 
         cardsQuery.where(
@@ -282,33 +349,25 @@ class TCViewModel @Inject constructor(
             .addSnapshotListener { value, error ->
                 if (error != null) {
                     inProgressProfiles.value = false
-                    Log.e("TCViewModel", "Error fetching cards: ${error.message}", error)
                     handleException(error)
+                    return@addSnapshotListener
                 }
-                if (value != null) {
-                    Log.d("TCViewModel", "Fetched ${value.documents.size} documents from Firestore.")
-                    val potentials = mutableListOf<UserData>()
-                    value.documents.forEach {
-                        it.toObject<UserData>()?.let {potential ->
-                            var showUser = true
-                            Log.d("TCViewModel", "Processing potential user: ${potential.userId}, Name: ${potential.name}")
-                            if (
-                                userData.value?.swipesLeft?.contains(potential.userId) == true ||
-                                userData.value?.swipesRight?.contains(potential.userId) == true ||
-                                userData.value?.matches?.contains(potential.userId) == true
-                            ) {
-                                showUser = false
-                                Log.d("TCViewModel", "User ${potential.userId} already swiped/matched. Not showing.")
-                            }
-                            if (showUser)
-                                potentials.add(potential)
-                        }
-                    }
 
-                    Log.d("TCViewModel", "Found ${potentials.size} potential matches after filtering.")
-                    matchProfiles.value = potentials
-                    inProgressProfiles.value = false
+                val potentials = mutableListOf<UserData>()
+                value?.documents?.forEach {
+                    it.toObject<UserData>()?.let { potential ->
+                        var showUser = true
+                        if (
+                            userData.value?.swipesLeft?.contains(potential.userId) == true ||
+                            userData.value?.swipesRight?.contains(potential.userId) == true ||
+                            userData.value?.matches?.contains(potential.userId) == true
+                        ) showUser = false
+                        if (showUser) potentials.add(potential)
+                    }
                 }
+
+                matchProfiles.value = potentials
+                inProgressProfiles.value = false
             }
     }
 
@@ -318,7 +377,6 @@ class TCViewModel @Inject constructor(
     }
 
     fun onLike(selectedUser: UserData) {
-        // Gốc ko có non-null
         val reciprocalMatch = selectedUser.swipesRight?.contains(userData.value?.userId)
         if (!reciprocalMatch!!) {
             db.collection(COLLECTION_USER).document(userData.value?.userId ?: "")
@@ -338,19 +396,16 @@ class TCViewModel @Inject constructor(
                 chatKey,
                 ChatUser(
                     userData.value?.userId,
-                    if (userData.value?.name.isNullOrEmpty()) userData.value?.username
-                    else userData.value?.name,
+                    userData.value?.name ?: userData.value?.username,
                     userData.value?.imageUrl
                 ),
                 ChatUser(
                     selectedUser.userId,
-                    if (selectedUser.name.isNullOrEmpty()) selectedUser.username
-                    else selectedUser.name,
+                    selectedUser.name ?: selectedUser.username,
                     selectedUser.imageUrl
                 )
             )
             db.collection(COLLECTION_CHAT).document(chatKey).set(chatData)
         }
     }
-
 }
