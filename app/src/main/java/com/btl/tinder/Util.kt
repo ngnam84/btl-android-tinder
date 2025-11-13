@@ -31,6 +31,10 @@ import androidx.compose.foundation.layout.wrapContentSize
 import coil3.compose.AsyncImagePainter.State.Empty.painter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
+import com.google.firebase.Firebase
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.functions
+
 /**
  * Điều hướng đến một màn hình cụ thể trong ứng dụng thông qua [NavController].
  *
@@ -124,3 +128,4 @@ fun CommonImage(
         }
     }
 }
+
