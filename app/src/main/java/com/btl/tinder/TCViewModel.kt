@@ -30,7 +30,7 @@ class TCViewModel @Inject constructor(
     val auth: FirebaseAuth,
     val db: FirebaseFirestore,
     val storage: FirebaseStorage,
-    private val chatClient: ChatClient
+    val chatClient: ChatClient
 ) : ViewModel() {
 
     val inProgress = mutableStateOf(false)
@@ -80,41 +80,28 @@ class TCViewModel @Inject constructor(
                                 firebaseUser.getIdToken(true).addOnSuccessListener {
                                     createOrUpdateProfile(username = username)
 
-                                    // ✅ Lấy token từ Cloud Function
-                                    getStreamToken { streamToken ->
-                                        val user = io.getstream.chat.android.models.User(
-                                            id = firebaseUser.uid,
-                                            name = username,
-                                            image = ""
-                                        )
-
-                                        chatClient.connectUser(user, streamToken).enqueue { result ->
-                                            if (result.isSuccess) {
-                                                Log.d("GetStream", "✅ Connected to Stream after signup!")
-                                            } else {
-                                                Log.e("GetStream", "❌ Stream connect failed")
-                                            }
-                                        }
-                                    }
+                                    // ✅ CONNECT STREAM NGAY SAU KHI SIGNUP
+                                    connectToStream(firebaseUser.uid, username)
 
                                     signInState.value = SignInState.SIGNED_IN_FROM_SIGNUP
                                     navController.navigate(DestinationScreen.Login.route)
                                 }.addOnFailureListener {
                                     handleException(it, "Could not refresh Firebase token")
                                 }
-
+                                inProgress.value = false
                             } else {
                                 handleException(task.exception, "Signup failed")
+                                inProgress.value = false
                             }
-                            inProgress.value = false
                         }
                 } else {
-                    inProgress.value = false
                     handleException(customMessage = "Username already exists")
+                    inProgress.value = false
                 }
             }
             .addOnFailureListener {
                 handleException(it)
+                inProgress.value = false
             }
     }
 
@@ -137,36 +124,55 @@ class TCViewModel @Inject constructor(
                     firebaseUser.getIdToken(true)
                         .addOnSuccessListener {
                             signInState.value = SignInState.SIGNED_IN_FROM_LOGIN
-                            inProgress.value = false
                             getUserData(firebaseUser.uid)
 
-                            getStreamToken { streamToken ->
-                                val user = io.getstream.chat.android.models.User(
-                                    id = firebaseUser.uid,
-                                    name = userData.value?.username ?: "Unknown",
-                                    image = userData.value?.imageUrl ?: ""
-                                )
+                            // ✅ CONNECT STREAM NGAY SAU KHI LOGIN
+                            connectToStream(firebaseUser.uid)
 
-                                chatClient.connectUser(user, streamToken).enqueue { result ->
-                                    if (result.isSuccess) {
-                                        Log.d("GetStream", "✅ Connected to Stream after login!")
-                                    } else {
-                                        Log.e("GetStream", "❌ Stream connect failed")
-                                    }
-                                }
-                            }
+                            inProgress.value = false
                         }
                         .addOnFailureListener {
                             handleException(it, "Could not refresh Firebase token")
+                            inProgress.value = false
                         }
 
                 } else {
                     handleException(task.exception, "Login failed")
+                    inProgress.value = false
                 }
             }
             .addOnFailureListener {
                 handleException(it, "Login failed")
+                inProgress.value = false
             }
+    }
+
+    private fun connectToStream(userId: String, username: String? = null) {
+        // Kiểm tra xem đã connect chưa
+        val currentUser = chatClient.clientState.user.value
+        if (currentUser != null && currentUser.id == userId) {
+            Log.d("TCViewModel", "✅ Already connected to Stream")
+            return
+        }
+
+        Log.d("TCViewModel", "🔄 Connecting to Stream for user: $userId")
+
+        getStreamToken { streamToken ->
+            val user = io.getstream.chat.android.models.User(
+                id = userId,
+                name = username ?: userData.value?.name ?: userData.value?.username ?: "Unknown",
+                image = userData.value?.imageUrl ?: ""
+            )
+
+            chatClient.connectUser(user, streamToken).enqueue { result ->
+                if (result.isSuccess) {
+                    Log.d("TCViewModel", "✅ Connected to Stream successfully!")
+                } else {
+                    Log.e("TCViewModel", "❌ Stream connect failed: ${result.errorOrNull()?.message}")
+
+                }
+            }
+        }
     }
 
     // ---------------------- STREAM TOKEN FIX ----------------------
@@ -178,16 +184,14 @@ class TCViewModel @Inject constructor(
             return
         }
 
-        // Làm mới token Firebase trước khi gọi function
         user.getIdToken(true)
             .addOnSuccessListener {
                 Log.d("GetStreamToken", "✅ Firebase ID token refreshed successfully.")
 
-                // ⚡ Chỉ định region asia-east2
                 val functions = FirebaseFunctions.getInstance("asia-east2")
 
                 functions
-                    .getHttpsCallable("ext-auth-chat-getStreamUserToken") // Dùng tên function đúng
+                    .getHttpsCallable("ext-auth-chat-getStreamUserToken")
                     .call()
                     .addOnSuccessListener { result ->
                         val token = result.data as? String
@@ -275,6 +279,11 @@ class TCViewModel @Inject constructor(
                     inProgress.value = false
                     Log.d("TCViewModel", "User data loaded: ${userData.value}")
                     populateCards()
+
+                    // ✅ Connect Stream sau khi có userData (cho trường hợp app restart)
+                    if (user != null) {
+                        connectToStream(uid)
+                    }
                 }
             }
     }
@@ -390,35 +399,105 @@ class TCViewModel @Inject constructor(
     }
 
     fun onLike(selectedUser: UserData) {
-        val reciprocalMatch = selectedUser.swipesRight?.contains(userData.value?.userId)
-        if (!reciprocalMatch!!) {
-            db.collection(COLLECTION_USER).document(userData.value?.userId ?: "")
-                .update("swipesRight", FieldValue.arrayUnion(selectedUser.userId))
+        val currentUserId = userData.value?.userId ?: ""
+        val selectedUserId = selectedUser.userId ?: ""
+
+        if (currentUserId.isEmpty() || selectedUserId.isEmpty()) {
+            handleException(customMessage = "Invalid user data")
+            return
+        }
+
+        // Kiểm tra xem người kia đã swipe right mình chưa
+        val reciprocalMatch = selectedUser.swipesRight?.contains(currentUserId) == true
+
+        if (reciprocalMatch) {
+            // ✅ MATCH! Cả 2 đều thích nhau
+            popupNotification.value = Event("It's a Match! 💕")
+
+            // 1. Xóa swipesRight của người kia
+            db.collection(COLLECTION_USER).document(selectedUserId)
+                .update("swipesRight", FieldValue.arrayRemove(currentUserId))
+
+            // 2. Thêm vào matches của cả 2 người
+            db.collection(COLLECTION_USER).document(selectedUserId)
+                .update("matches", FieldValue.arrayUnion(currentUserId))
+
+            db.collection(COLLECTION_USER).document(currentUserId)
+                .update("matches", FieldValue.arrayUnion(selectedUserId))
+
+            // 3. 🔥 TẠO CHANNEL STREAM CHAT thay vì Firebase chat room
+            createStreamChatChannel(currentUserId, selectedUserId, selectedUser)
+
         } else {
-            popupNotification.value = Event("Match!")
+            // ❌ Chưa match - chỉ thêm vào swipesRight
+            db.collection(COLLECTION_USER).document(currentUserId)
+                .update("swipesRight", FieldValue.arrayUnion(selectedUserId))
+                .addOnSuccessListener {
+                    Log.d("TCViewModel", "Swiped right on: ${selectedUser.name}")
+                }
+                .addOnFailureListener {
+                    handleException(it, "Failed to update swipes")
+                }
+        }
+    }
 
-            db.collection(COLLECTION_USER).document(selectedUser.userId ?: "")
-                .update("swipesRight", FieldValue.arrayRemove(userData.value?.userId))
-            db.collection(COLLECTION_USER).document(selectedUser.userId ?: "")
-                .update("matches", FieldValue.arrayUnion(userData.value?.userId))
-            db.collection(COLLECTION_USER).document(userData.value?.userId ?: "")
-                .update("matches", FieldValue.arrayUnion(selectedUser.userId))
+    private fun createStreamChatChannel(
+        currentUserId: String,
+        matchedUserId: String,
+        matchedUser: UserData
+    ) {
 
-            val chatKey = db.collection(COLLECTION_CHAT).document().id
-            val chatData = ChatData(
-                chatKey,
-                ChatUser(
-                    userData.value?.userId,
-                    userData.value?.name ?: userData.value?.username,
-                    userData.value?.imageUrl
-                ),
-                ChatUser(
-                    selectedUser.userId,
-                    selectedUser.name ?: selectedUser.username,
-                    selectedUser.imageUrl
-                )
+        val connectionState = chatClient.clientState.connectionState.value
+        Log.d("TCViewModel", "Stream connection state: $connectionState")
+
+        if (connectionState != io.getstream.chat.android.models.ConnectionState.Connected) {
+            Log.e("TCViewModel", "❌ Stream not connected. State: $connectionState")
+            handleException(customMessage = "Chat not connected. Please try again.")
+            return
+        }
+
+
+        val channelId = listOf(currentUserId, matchedUserId).sorted().joinToString("-")
+
+        Log.d("TCViewModel", "Creating channel with ID: $channelId")
+        Log.d("TCViewModel", "Members: $currentUserId, $matchedUserId")
+
+
+        val channel = chatClient.channel(
+            channelType = "messaging",
+            channelId = channelId
+        )
+
+
+        channel.create(
+            memberIds = listOf(currentUserId, matchedUserId),
+            extraData = mapOf(
+                "created_by_match" to true
             )
-            db.collection(COLLECTION_CHAT).document(chatKey).set(chatData)
+        ).enqueue { result ->
+            if (result.isSuccess) {
+                Log.d("TCViewModel", "✅ Stream channel created successfully: $channelId")
+
+
+                channel.sendMessage(
+                    message = io.getstream.chat.android.models.Message(
+                        text = "🎉 You matched! Say hi and start chatting!"
+                    )
+                ).enqueue { msgResult ->
+                    if (msgResult.isSuccess) {
+                        Log.d("TCViewModel", "✅ Welcome message sent")
+                    } else {
+                        Log.e("TCViewModel", "❌ Failed to send message: ${msgResult.errorOrNull()?.message}")
+                    }
+                }
+
+            } else {
+                val error = result.errorOrNull()
+                Log.e("TCViewModel", "❌ Failed to create channel")
+                Log.e("TCViewModel", "Error message: ${error?.message}")
+                Log.e("TCViewModel", "Error details: $error")
+                handleException(customMessage = "Could not create chat: ${error?.message}")
+            }
         }
     }
 }
