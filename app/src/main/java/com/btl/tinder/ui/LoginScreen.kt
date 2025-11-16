@@ -189,7 +189,7 @@ fun LoginScreen(navController: NavController, vm: TCViewModel) {
                         fontFamily = deliusFontFamily,
                         fontWeight = FontWeight.W600,
                         fontSize = 18.sp,
-                        color = Color.Black
+                        color = Color.White
                     )
                 }
             }

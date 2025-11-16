@@ -112,6 +112,7 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
                 onInterestsChange = {interests = it},
                 onSave = {
                     vm.updateProfileData(name,username,bio,gender,genderPreference,interests)
+                    //vm.updateProfileData(name,username,bio,gender,genderPreference)
                 },
                 onBack = { navigateTo(navController, DestinationScreen.Swipe.route) },
                 onLogout = {
@@ -196,7 +197,7 @@ fun ProfileContent(
             TextField(
                 value = bio,
                 onValueChange = onBioChange,
-                colors = TextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor =Color.Black),
+                colors = TextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black),
                 singleLine = false
             )
         }
@@ -316,7 +317,7 @@ fun ProfileContent(
                 ) {
                     Text(
                         text = "Logout",
-                        color = Color.Black,
+                        color = Color.White,
                         fontFamily = deliusFontFamily,
                         fontWeight = FontWeight.W600,
                         fontSize = 18.sp
