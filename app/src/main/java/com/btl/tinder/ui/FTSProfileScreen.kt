@@ -74,6 +74,7 @@ import com.btl.tinder.data.CityData
 import com.btl.tinder.data.Event
 import com.btl.tinder.navigateTo
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlin.String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -341,6 +342,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                             bio = bio,
                             gender = gender,
                             genderPreference = genderPreference,
+                            interests = listOf(),
                             address = selectedCity?.city,
                             lat = selectedCity?.lat,
                             long = selectedCity?.lng

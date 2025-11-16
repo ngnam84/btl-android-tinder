@@ -22,20 +22,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import javax.inject.Inject
 
-enum class SignInState {
-    SIGNED_IN_FROM_LOGIN,
-    SIGNED_IN_FROM_SIGNUP,
-    SIGNED_OUT
-}
 
 
-data class UserMatch(
-    val user: UserData,
-    val score: Double
-)
+
+
+
+
+
+
+
+
+
 
 @HiltViewModel
-class TCViewModel @Inject constructor(
+class TCViewModel12 @Inject constructor(
     val auth: FirebaseAuth,
     val db: FirebaseFirestore,
     val storage: FirebaseStorage,
@@ -238,7 +238,6 @@ class TCViewModel @Inject constructor(
         imageUrl: String? = null,
         gender: Gender? = null,
         genderPreference: Gender? = null,
-        interests: List<String>? = null,
         address: String? = null,
         lat: Double? = null,
         long: Double? = null
@@ -252,7 +251,6 @@ class TCViewModel @Inject constructor(
             bio = bio ?: userData.value?.bio,
             gender = gender?.toString() ?: userData.value?.gender,
             genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference,
-            interests = interests ?: userData.value?.interests ?: listOf(),
             address = address, // Use the new address
             lat = lat,         // Use the new latitude
             long = long         // Use the new longitude
@@ -326,7 +324,6 @@ class TCViewModel @Inject constructor(
         bio: String,
         gender: Gender,
         genderPreference: Gender,
-        interests: List<String>,
         address: String?,
         lat: Double?,
         long: Double?
@@ -337,7 +334,6 @@ class TCViewModel @Inject constructor(
             bio = bio,
             gender = gender,
             genderPreference = genderPreference,
-            interests = interests,
             address = address,
             lat = lat,
             long = long
@@ -374,84 +370,18 @@ class TCViewModel @Inject constructor(
         inProgress.value = false
     }
 
-    private fun calculateJaccardSimilarity(
-        interests1: List<String>,
-        interests2: List<String>
-    ): Double {
-        if (interests1.isEmpty() && interests2.isEmpty()) return 0.0
-        if (interests1.isEmpty() || interests2.isEmpty()) return 0.0
-
-        val intersection = interests1.intersect(interests2.toSet())
-        val union = interests1.union(interests2.toSet())
-
-        return intersection.size.toDouble() / union.size.toDouble()
-    }
-
-    //tính độ tương thích
-    private fun calculateMatchScore(
-        currentUser: UserData,
-        potential: UserData
-    ): Double {
-        val GENDER_WEIGHT = 0.2
-        val INTEREST_WEIGHT = 0.5
-
-        val genderScore = 1.0
-
-        val interestScore = calculateJaccardSimilarity(
-            currentUser.interests ?: listOf(),
-            potential.interests ?: listOf()
-        )
-
-        val totalScore = (GENDER_WEIGHT * genderScore) + (INTEREST_WEIGHT * interestScore)
-
-        return totalScore
-    }
-
     // ---------------------- MATCHING ----------------------
 
-//    private fun populateCards() {
-//        inProgressProfiles.value = true
-//        val g = userData.value?.gender?.uppercase() ?: "ANY"
-//        val gPref = userData.value?.genderPreference?.uppercase() ?: "ANY"
-//
-//        val cardsQuery = when (Gender.valueOf(gPref)) {
-//            Gender.MALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.MALE)
-//            Gender.FEMALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.FEMALE)
-//            Gender.ANY -> db.collection(COLLECTION_USER)
-//        }
-//        val userGender = Gender.valueOf(g)
-//
-//        cardsQuery.where(
-//            com.google.firebase.firestore.Filter.and(
-//                com.google.firebase.firestore.Filter.notEqualTo("userId", userData.value?.userId),
-//                com.google.firebase.firestore.Filter.or(
-//                    com.google.firebase.firestore.Filter.equalTo("genderPreference", userGender),
-//                    com.google.firebase.firestore.Filter.equalTo("genderPreference", Gender.ANY)
-//                )
-//            )
-//        )
-//    }
-
-    //PopulateCards chay duoc
     private fun populateCards() {
         inProgressProfiles.value = true
-        Log.d("TCViewModel", "populateCards called. Current User Data: ${userData.value}")
+        val g = userData.value?.gender?.uppercase() ?: "ANY"
+        val gPref = userData.value?.genderPreference?.uppercase() ?: "ANY"
 
-        val g = if (userData.value?.gender.isNullOrEmpty()) "ANY"
-        else userData.value!!.gender!!.uppercase()
-        val gPref = if (userData.value?.genderPreference.isNullOrEmpty()) "ANY"
-        else userData.value!!.genderPreference!!.uppercase()
-
-        Log.d("TCViewModel", "User Gender: $g, Preference: $gPref")
-
-        val cardsQuery =
-            when (Gender.valueOf(gPref)) {
-                Gender.MALE -> db.collection(COLLECTION_USER)
-                    .whereEqualTo("gender", Gender.MALE)
-                Gender.FEMALE -> db.collection(COLLECTION_USER)
-                    .whereEqualTo("gender", Gender.FEMALE)
-                Gender.ANY -> db.collection(COLLECTION_USER)
-            }
+        val cardsQuery = when (Gender.valueOf(gPref)) {
+            Gender.MALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.MALE)
+            Gender.FEMALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.FEMALE)
+            Gender.ANY -> db.collection(COLLECTION_USER)
+        }
 
         val userGender = Gender.valueOf(g)
 
@@ -467,58 +397,25 @@ class TCViewModel @Inject constructor(
             .addSnapshotListener { value, error ->
                 if (error != null) {
                     inProgressProfiles.value = false
-                    Log.e("TCViewModel", "Error fetching cards: ${error.message}", error)
                     handleException(error)
+                    return@addSnapshotListener
                 }
-                if (value != null) {
-                    Log.d("TCViewModel", "Fetched ${value.documents.size} documents from Firestore.")
-                    val potentials = mutableListOf<UserData>()
-                    value.documents.forEach {
-                        it.toObject<UserData>()?.let {potential ->
-                            var showUser = true
-                            Log.d("TCViewModel", "Processing potential user: ${potential.userId}, Name: ${potential.name}")
-                            if (
-                                userData.value?.swipesLeft?.contains(potential.userId) == true ||
-                                userData.value?.swipesRight?.contains(potential.userId) == true ||
-                                userData.value?.matches?.contains(potential.userId) == true
-                            ) {
-                                showUser = false
-                                Log.d("TCViewModel", "User ${potential.userId} already swiped/matched. Not showing.")
-                            }
-                            if (showUser)
-                                potentials.add(potential)
-                        }
+
+                val potentials = mutableListOf<UserData>()
+                value?.documents?.forEach {
+                    it.toObject<UserData>()?.let { potential ->
+                        var showUser = true
+                        if (
+                            userData.value?.swipesLeft?.contains(potential.userId) == true ||
+                            userData.value?.swipesRight?.contains(potential.userId) == true ||
+                            userData.value?.matches?.contains(potential.userId) == true
+                        ) showUser = false
+                        if (showUser) potentials.add(potential)
                     }
-
-                    Log.d("TCViewModel", "Found ${potentials.size} potential matches after filtering.")
-                    Log.d("TCViewModel", "===== CALCULATING SCORES =====")
-
-                    // Tính điểm và ranking
-                    val scoredMatches = potentials.map {
-                        val score = calculateMatchScore(userData.value!!, it)
-                        UserMatch(it, score)
-                    }
-
-                    Log.d("TCViewModel", "===== ALL SCORES (BEFORE FILTER) =====")
-                    scoredMatches.forEach {
-                        Log.d("TCViewModel", "[${it.user.name}] Score: ${String.format("%.2f", it.score)}")
-                    }
-
-                    val filteredMatches = scoredMatches.filter { it.score >= 0.00000001 }
-
-                    Log.d("TCViewModel", "Found ${potentials.size} potential matches after filtering.")
-
-                    // Tính điểm và ranking
-                    val rankedMatches = potentials
-                        .map { UserMatch(it, calculateMatchScore(userData.value!!, it)) }
-                        .filter { it.score >= 0.4 }
-                        .sortedByDescending { it.score }
-                        .map { it.user }
-
-                    Log.d("TCViewModel", "Ranked matches: ${rankedMatches.size} (threshold 0.4)")
-                    matchProfiles.value = rankedMatches
-                    inProgressProfiles.value = false
                 }
+
+                matchProfiles.value = potentials
+                inProgressProfiles.value = false
             }
     }
 

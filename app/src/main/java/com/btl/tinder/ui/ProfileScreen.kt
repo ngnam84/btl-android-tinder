@@ -111,7 +111,7 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
                 onGenderPreferenceChange = {genderPreference=it},
                 onInterestsChange = {interests = it},
                 onSave = {
-                    vm.updateProfileData(name,username,bio,gender,genderPreference,interests)
+                    //vm.updateProfileData(name,username,bio,gender,genderPreference,interests)
                     //vm.updateProfileData(name,username,bio,gender,genderPreference)
                 },
                 onBack = { navigateTo(navController, DestinationScreen.Swipe.route) },

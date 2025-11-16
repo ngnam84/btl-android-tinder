@@ -48,24 +48,6 @@ android {
 
 dependencies {
 
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)
-    implementation(libs.androidx.foundation.layout)
-    implementation(libs.androidx.compose.material)
-    // --- Compose BOM ---
-    val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
-    // --- AndroidX Core ---
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.google.firebase.functions.ktx)
-    implementation(libs.firebase.appcheck.debug)
-
     // --- Jetpack Compose ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
     implementation("androidx.compose:compose-bom:2025.11.00")
@@ -81,6 +63,20 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.ui.test.junit4)
+
+    // --- AndroidX Core ---
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.google.firebase.functions.ktx)
+    implementation(libs.firebase.appcheck.debug)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.compose.material)
 
     // --- Navigation ---
     implementation(libs.androidx.navigation.compose)
