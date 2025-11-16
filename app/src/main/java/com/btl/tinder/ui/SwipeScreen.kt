@@ -19,9 +19,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -277,12 +281,35 @@ private fun ProfileCard(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp))
+
+                if (!matchProfile.address.isNullOrEmpty()) {
+                    Row(
+                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "Location",
+                            tint = Color(0xFF744D8C),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = matchProfile.address!!,
+                            color = Color.White,
+                            fontFamily = deliusFontFamily,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+
                 if (!matchProfile.bio.isNullOrEmpty()) {
                     Text(text = matchProfile.bio!!,
                         color = Color.White,
                         fontFamily = playpenFontFamily,
                         fontSize = 16.sp,
-                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
+                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp, top = 4.dp)
                     )
                 }
             }
