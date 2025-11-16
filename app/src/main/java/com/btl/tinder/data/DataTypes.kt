@@ -13,6 +13,7 @@ data class UserData(
     var swipesLeft: List<String>? = listOf(),
     var swipesRight: List<String>? = listOf(),
     var matches: List<String>? = listOf(),
+    var interests: List<String> = listOf(),
     var address: String? = "",
     var lat: Double? = 0.0,
     var long: Double? = 0.0
@@ -28,6 +29,7 @@ data class UserData(
         "swipesLeft" to swipesLeft,
         "swipesRight" to swipesRight,
         "matches" to matches,
+        "interests" to interests,
         "address" to address,
         "lat" to lat,
         "long" to long

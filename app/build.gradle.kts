@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.btl.tinder"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -48,6 +48,15 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.compose.material)
+    // --- Compose BOM ---
+    val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
     // --- AndroidX Core ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
