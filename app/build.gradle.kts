@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.google.firebase.functions.ktx)
+    implementation(libs.firebase.appcheck.debug)
 
     // --- Jetpack Compose ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
@@ -83,6 +84,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation("com.google.firebase:firebase-analytics:23.0.0")
+    implementation ("com.google.firebase:firebase-appcheck-debug")
 
     // --- Hilt / Dependency Injection ---
     implementation(libs.dagger.hilt.android)
