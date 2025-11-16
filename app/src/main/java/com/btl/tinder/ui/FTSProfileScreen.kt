@@ -30,7 +30,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
@@ -39,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,9 +50,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -63,6 +70,7 @@ import com.btl.tinder.CommonProgressSpinner
 import com.btl.tinder.DestinationScreen
 import com.btl.tinder.NotificationMessage
 import com.btl.tinder.TCViewModel
+import com.btl.tinder.data.CityData
 import com.btl.tinder.data.Event
 import com.btl.tinder.navigateTo
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -72,6 +80,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
 
     val systemUiController = rememberSystemUiController()
+    val context = LocalContext.current
 
     SideEffect {
         systemUiController.setStatusBarColor(
@@ -88,6 +97,8 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
     var bio by rememberSaveable { mutableStateOf("") }
     var gender by rememberSaveable { mutableStateOf(Gender.MALE) }
     var genderPreference by rememberSaveable { mutableStateOf(Gender.FEMALE) }
+    var selectedCity by remember { mutableStateOf<CityData?>(null) }
+
 
     Box(
         modifier = Modifier
@@ -141,7 +152,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
 
                 ProfileImage1(imageUrl = vm.userData.value?.imageUrl, vm = vm)
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp).background(Color.Transparent))
 
                 OutlinedTextField(
                     value = name,
@@ -160,7 +171,15 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp).background(Color(0xFFFF768B)))
+
+                // --- Autocomplete City Search Bar ---
+                CityAutocompleteTextField(
+                    vm = vm,
+                    onCitySelected = { selectedCity = it } // Corrected logic to update the correct state variable
+                )
+
+                Spacer(modifier = Modifier.height(8.dp).background(Color(0xFFFF768B)))
 
                 OutlinedTextField(
                     value = bio,
@@ -321,7 +340,10 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                             username = vm.userData.value?.username ?: "",
                             bio = bio,
                             gender = gender,
-                            genderPreference = genderPreference
+                            genderPreference = genderPreference,
+                            address = selectedCity?.city,
+                            lat = selectedCity?.lat,
+                            long = selectedCity?.lng
                         )
                         navigateTo(navController, DestinationScreen.Swipe.route)
                     }
@@ -399,3 +421,65 @@ fun ProfileImage1(imageUrl : String?,vm: TCViewModel) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CityAutocompleteTextField(vm: TCViewModel, onCitySelected: (CityData?) -> Unit) {
+    val allCities by vm.cities.collectAsState()
+    var text by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    // Case-insensitive filtering
+    val cities = remember(text, allCities) {
+        if (text.isBlank()) emptyList()
+        else allCities.filter {
+            it.city?.lowercase()?.contains(text.lowercase()) == true
+        }
+    }
+
+    LaunchedEffect(text) {
+        vm.searchCities(text)
+    }
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().menuAnchor().onFocusChanged {
+                if (!it.isFocused) {
+                    if (cities.none { cityData -> cityData.city.equals(text, ignoreCase = true) }) {
+                        text = ""
+                        onCitySelected(null)
+                    }
+                }
+            },
+            value = text,
+            onValueChange = {
+                text = it
+                expanded = it.isNotEmpty()
+            },
+            label = { Text("City", fontFamily = deliusFontFamily, color = Color.Black) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Black, unfocusedBorderColor = Color.Black, cursorColor = Color.Black,
+                focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Gray
+            )
+        )
+
+        if (cities.isNotEmpty()) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                cities.forEach { cityData ->
+                    DropdownMenuItem(
+                        text = { Text("${cityData.city}, ${cityData.country}", fontFamily = deliusFontFamily) },
+                        onClick = {
+                            onCitySelected(cityData)
+                            text = cityData.city ?: ""
+                            expanded = false
+                            focusManager.clearFocus()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+

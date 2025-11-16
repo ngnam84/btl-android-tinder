@@ -16,6 +16,9 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.chat.android.client.ChatClient
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import javax.inject.Inject
 
@@ -41,6 +44,11 @@ class TCViewModel @Inject constructor(
 
     val matchProfiles = mutableStateOf<List<UserData>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
+
+    // --- City Search State ---
+    private val _cities = MutableStateFlow<List<CityData>>(emptyList())
+    val cities = _cities.asStateFlow()
+    private var searchJob: Job? = null
 
     init {
         val currentUser = auth.currentUser
@@ -223,7 +231,10 @@ class TCViewModel @Inject constructor(
         bio: String? = null,
         imageUrl: String? = null,
         gender: Gender? = null,
-        genderPreference: Gender? = null
+        genderPreference: Gender? = null,
+        address: String? = null,
+        lat: Double? = null,
+        long: Double? = null
     ) {
         val uid = auth.currentUser?.uid
         val userData = UserData(
@@ -233,7 +244,10 @@ class TCViewModel @Inject constructor(
             imageUrl = imageUrl ?: userData.value?.imageUrl,
             bio = bio ?: userData.value?.bio,
             gender = gender?.toString() ?: userData.value?.gender,
-            genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference
+            genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference,
+            address = address, // Use the new address
+            lat = lat,         // Use the new latitude
+            long = long         // Use the new longitude
         )
 
         uid?.let {
@@ -303,14 +317,20 @@ class TCViewModel @Inject constructor(
         username: String,
         bio: String,
         gender: Gender,
-        genderPreference: Gender
+        genderPreference: Gender,
+        address: String?,
+        lat: Double?,
+        long: Double?
     ) {
         createOrUpdateProfile(
             name = name,
             username = username,
             bio = bio,
             gender = gender,
-            genderPreference = genderPreference
+            genderPreference = genderPreference,
+            address = address,
+            lat = lat,
+            long = long
         )
     }
 
@@ -499,5 +519,28 @@ class TCViewModel @Inject constructor(
                 handleException(customMessage = "Could not create chat: ${error?.message}")
             }
         }
+    }
+
+    fun searchCities(query: String) {
+        if (query.length < 2) {
+            _cities.value = emptyList()
+            return
+        }
+        // Firestore does not support case-insensitive startsWith, so we query for a range
+        // This finds cities where the 'city' field is >= query and < query + '\uf8ff'
+        // This effectively works as a prefix search.
+        db.collection("cities")
+            .orderBy("city")
+            .startAt(query)
+            .endAt(query + "\uf8ff")
+            .limit(10) // Limit results to avoid fetching too much data
+            .get()
+            .addOnSuccessListener { documents ->
+                _cities.value = documents.mapNotNull { it.toObject<CityData>() }
+            }
+            .addOnFailureListener { exception ->
+                Log.w("TCViewModel", "Error getting cities: ", exception)
+                _cities.value = emptyList()
+            }
     }
 }
