@@ -12,7 +12,8 @@ data class UserData(
     var genderPreference: String? = "",
     var swipesLeft: List<String>? = listOf(),
     var swipesRight: List<String>? = listOf(),
-    var matches: List<String>? = listOf()
+    var matches: List<String>? = listOf(),
+    var interests: List<String> = listOf(),
 ) {
     fun toMap() = mapOf(
         "userId" to userId,
@@ -24,7 +25,8 @@ data class UserData(
         "genderPreference" to genderPreference,
         "swipesLeft" to swipesLeft,
         "swipesRight" to swipesRight,
-        "matches" to matches
+        "matches" to matches,
+        "interests" to interests,
     )
 }
 

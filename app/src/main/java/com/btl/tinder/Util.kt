@@ -42,6 +42,7 @@ import coil3.compose.SubcomposeAsyncImageContent
  * @param navController Bộ điều khiển điều hướng dùng để thực hiện chuyển màn hình.
  * @param route Đường dẫn (route) của màn hình đích cần điều hướng tới.
  */
+
 fun navigateTo(navController: NavController, route: String) {
     navController.navigate(route) {
         popUpTo(route)
