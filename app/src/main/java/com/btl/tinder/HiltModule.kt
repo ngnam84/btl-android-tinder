@@ -66,7 +66,7 @@ object ChatModule {
         offlinePluginFactory: StreamOfflinePluginFactory,
         statePluginFactory: StreamStatePluginFactory
     ): ChatClient {
-        return ChatClient.Builder("ghhjw753ksej", context.applicationContext)
+        return ChatClient.Builder("asw9g2a8pkzz", context.applicationContext)
                 .withPlugins(offlinePluginFactory, statePluginFactory)
                 .logLevel(ChatLogLevel.ALL)
                 .build()
