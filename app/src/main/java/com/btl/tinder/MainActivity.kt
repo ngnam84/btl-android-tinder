@@ -2,8 +2,10 @@ package com.btl.tinder
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +30,7 @@ import com.btl.tinder.ui.ProfileScreen
 import com.btl.tinder.ui.SignupScreen
 import com.btl.tinder.ui.SingleChatScreen
 import com.btl.tinder.ui.SwipeScreen
+import com.btl.tinder.ui.VideoCallScreen
 import com.btl.tinder.ui.theme.TinderCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -82,7 +87,7 @@ fun SwipeAppNavigation() {
             SwipeScreen(navController, vm)
         }
         composable(DestinationScreen.ChatList.route) {
-            ChatListScreen(navController)
+            ChatListScreen(navController,vm)
         }
 
     }

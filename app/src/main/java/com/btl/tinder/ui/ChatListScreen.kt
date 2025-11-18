@@ -18,6 +18,7 @@ import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.logger.ChatLogLevel
 import io.getstream.chat.android.compose.ui.channels.ChannelsScreen
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
+import io.getstream.chat.android.models.Channel
 import io.getstream.chat.android.models.InitializationState
 import io.getstream.chat.android.models.User
 import io.getstream.chat.android.offline.plugin.factory.StreamOfflinePluginFactory
@@ -105,7 +106,7 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
                     ChatTheme {
                         ChannelsScreen(
                             title = "Chats",
-                            onChannelClick = { channel ->
+                            onChannelClick = { channel: Channel ->
                                 // ✅ Mở Activity thay vì navigate
                                 context.startActivity(
                                     SingleChatScreen.getIntent(context, channel.cid)
