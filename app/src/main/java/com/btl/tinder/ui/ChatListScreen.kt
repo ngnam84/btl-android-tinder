@@ -15,6 +15,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import io.getstream.chat.android.compose.ui.channels.ChannelsScreen
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
+import io.getstream.chat.android.models.Channel
 import io.getstream.chat.android.models.InitializationState
 import io.getstream.chat.android.models.User
 
@@ -80,6 +81,9 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
                 InitializationState.COMPLETE -> {
                     ChatTheme {
                         ChannelsScreen(
+//                             title = "Chats",
+//                             onChannelClick = { channel: Channel ->
+                                // ✅ Mở Activity thay vì navigate
                             title = "Matches",
                             onChannelClick = { channel ->
                                 context.startActivity(

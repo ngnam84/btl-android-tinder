@@ -47,19 +47,23 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.firebase.functions.ktx.v2121)
+
+    val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
     // --- Jetpack Compose ---
-    val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
-    implementation("androidx.compose:compose-bom:2025.11.00")
-    androidTestImplementation("androidx.compose:compose-bom:2025.11.00")
-
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.ui.test.junit4)
@@ -96,6 +100,17 @@ dependencies {
     kapt(libs.dagger.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
+
+    // --- Firebase ---
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+
+
+
+    // --- Accompanist ---
+    implementation(libs.accompanist.systemuicontroller)
+
     // --- Coil (Image Loading) ---
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
@@ -103,12 +118,36 @@ dependencies {
     // --- Coroutines ---
     implementation(libs.kotlinx.coroutines.android)
 
-    // --- Accompanist ---
-    implementation(libs.accompanist.systemuicontroller)
+    // --- Testing ---
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 
-    // --- Stream Chat ---
-    implementation(libs.stream.chat.android.offline)
+    // --- exyte AndroidAnimatedNavigationBar ---
+    implementation(libs.animated.navigation.bar)
+
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.foundation)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.auth.ktx)
+
+    implementation(libs.toasty)
+
+    //--- Stream Chat ---
+    implementation(libs.stream.chat.android.client)
+    implementation(libs.stream.chat.android.state)
+    implementation(libs.stream.chat.android.offline.v6270)
+    implementation(libs.stream.chat.android.ui.components)
+    // Stream Chat Compose UI
     implementation(libs.stream.chat.android.compose)
+
+
+
+    
+    // --- Stream Video ---
+    implementation(libs.stream.video.android.ui.compose)
+
 
     // --- Credentials / Google Sign-In ---
     implementation(libs.androidx.credentials)
@@ -120,8 +159,4 @@ dependencies {
     implementation(libs.toasty)
     implementation(libs.animated.navigation.bar)
 
-    // --- Testing ---
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
 }
