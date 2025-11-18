@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.btl.tinder"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -48,14 +48,6 @@ android {
 
 dependencies {
 
-    // --- AndroidX Core ---
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.google.firebase.functions.ktx)
-
     // --- Jetpack Compose ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
     implementation("androidx.compose:compose-bom:2025.11.00")
@@ -72,6 +64,20 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
+    // --- AndroidX Core ---
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.google.firebase.functions.ktx)
+    implementation(libs.firebase.appcheck.debug)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.compose.material)
+
     // --- Navigation ---
     implementation(libs.androidx.navigation.compose)
 
@@ -83,6 +89,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation("com.google.firebase:firebase-analytics:23.0.0")
+    implementation ("com.google.firebase:firebase-appcheck-debug")
 
     // --- Hilt / Dependency Injection ---
     implementation(libs.dagger.hilt.android)
