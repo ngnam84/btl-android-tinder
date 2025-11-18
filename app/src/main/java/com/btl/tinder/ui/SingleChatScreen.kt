@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import io.getstream.chat.android.compose.ui.messages.MessagesScreen
@@ -74,7 +73,6 @@ class SingleChatScreen : ComponentActivity() {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = 25.dp, end = 70.dp) // 16dp để center với header, 20dp cách tiêu đề
-                            .zIndex(1f)
                     )
                 }
             }

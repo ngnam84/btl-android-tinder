@@ -17,6 +17,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.collect
@@ -35,6 +39,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class VideoCallScreen : ComponentActivity() {
+
+    private val key = "asw9g2a8pkzz"
+    private val secret = "fem5vds847x85vkmywrrpwnkcmznqaqgfcf5km34wjbzeafmbe8bpv2b5jjbq4ct"
 
     private var channelId: String? = null
     private var callStartTime: Long = 0
@@ -59,35 +66,46 @@ class VideoCallScreen : ComponentActivity() {
         }
 
         setContent {
-            VideoTheme {
-                var currentCall by remember { mutableStateOf<Call?>(null) }
-                val coroutineScope = rememberCoroutineScope()
+            Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                VideoTheme {
+                    var currentCall by remember { mutableStateOf<Call?>(null) }
+                    val coroutineScope = rememberCoroutineScope()
 
-                LaunchedEffect(Unit) {
-                    // Tạo user object
-                    val user = User(
-                        id = userId,
-                        name = userName ?: "User",
-                        image = userImage ?: ""
-                    )
-                    
-                    // Tạo devToken trực tiếp (chỉ dùng cho Video Call, không cần Cloud Function)
-                    val devToken = StreamVideo.devToken(userId)
-                    
-                    if (devToken.isNotEmpty()) {
-                        try {
-                            Log.d("VideoCallScreen", "🔑 Using devToken for Video Call")
-                            
-                            // Kiểm tra xem đã có client chưa
-                            val videoClient = try {
-                                val existingClient = StreamVideo.instance()
-                                val existingUserId = existingClient.user?.id
-                                if (existingUserId != null && existingUserId == userId) {
-                                    Log.d("VideoCallScreen", "✅ Reusing existing StreamVideo client")
-                                    existingClient
-                                } else {
-                                    // User khác, cần tạo client mới
-                                    StreamVideo.removeClient()
+                    LaunchedEffect(Unit) {
+                        // Tạo user object
+                        val user = User(
+                            id = userId,
+                            name = userName ?: "User",
+                            image = userImage ?: ""
+                        )
+
+                        // Tạo devToken trực tiếp (chỉ dùng cho Video Call, không cần Cloud Function)
+                        val devToken = StreamVideo.devToken(userId)
+
+                        if (devToken.isNotEmpty()) {
+                            try {
+                                Log.d("VideoCallScreen", "🔑 Using devToken for Video Call")
+
+                                // Kiểm tra xem đã có client chưa
+                                val videoClient = try {
+                                    val existingClient = StreamVideo.instance()
+                                    val existingUserId = existingClient.user?.id
+                                    if (existingUserId != null && existingUserId == userId) {
+                                        Log.d("VideoCallScreen", "✅ Reusing existing StreamVideo client")
+                                        existingClient
+                                    } else {
+                                        // User khác, cần tạo client mới
+                                        StreamVideo.removeClient()
+                                        StreamVideoBuilder(
+                                            context = this@VideoCallScreen,
+                                            apiKey = "ghhjw753ksej",
+                                            user = user,
+                                            token = devToken
+                                        ).build()
+                                    }
+                                } catch (e: Exception) {
+                                    // Chưa có client, tạo mới
+                                    Log.d("VideoCallScreen", "Creating new StreamVideo client")
                                     StreamVideoBuilder(
                                         context = this@VideoCallScreen,
                                         apiKey = "ghhjw753ksej",
@@ -95,161 +113,153 @@ class VideoCallScreen : ComponentActivity() {
                                         token = devToken
                                     ).build()
                                 }
-                            } catch (e: Exception) {
-                                // Chưa có client, tạo mới
-                                Log.d("VideoCallScreen", "Creating new StreamVideo client")
-                                StreamVideoBuilder(
-                                    context = this@VideoCallScreen,
-                                    apiKey = "ghhjw753ksej",
-                                    user = user,
-                                    token = devToken
-                                ).build()
-                            }
-                            
-                            Log.d("VideoCallScreen", "✅ StreamVideo client ready")
 
-                            // Tạo call với client
-                            val newCall = videoClient.call(type = callType, id = callId)
-                            currentCall = newCall
-                            currentCallRef = newCall // Lưu reference để dùng trong onBackPressed
-                            coroutineScopeRef = coroutineScope // Lưu scope
+                                Log.d("VideoCallScreen", "✅ StreamVideo client ready")
 
-                            // Join call với create = true
-                            launch {
-                                try {
-                                    newCall.join(create = true)
-                                    Log.d("VideoCallScreen", "✅ Created and joined call")
-                                    // Lưu thời gian bắt đầu khi join thành công
-                                    callStartTime = System.currentTimeMillis()
-                                } catch (e: Exception) {
-                                    Log.e("VideoCallScreen", "❌ Failed to join call: ${e.message}", e)
-                                    finish()
+                                // Tạo call với client
+                                val newCall = videoClient.call(type = callType, id = callId)
+                                currentCall = newCall
+                                currentCallRef = newCall // Lưu reference để dùng trong onBackPressed
+                                coroutineScopeRef = coroutineScope // Lưu scope
+
+                                // Join call với create = true
+                                launch {
+                                    try {
+                                        newCall.join(create = true)
+                                        Log.d("VideoCallScreen", "✅ Created and joined call")
+                                        // Lưu thời gian bắt đầu khi join thành công
+                                        callStartTime = System.currentTimeMillis()
+                                    } catch (e: Exception) {
+                                        Log.e("VideoCallScreen", "❌ Failed to join call: ${e.message}", e)
+                                        finish()
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                Log.e("VideoCallScreen", "❌ Error setting up call: ${e.message}", e)
+                                finish()
                             }
-                        } catch (e: Exception) {
-                            Log.e("VideoCallScreen", "❌ Error setting up call: ${e.message}", e)
+                        } else {
+                            Log.e("VideoCallScreen", "❌ Failed to generate devToken")
                             finish()
                         }
-                    } else {
-                        Log.e("VideoCallScreen", "❌ Failed to generate devToken")
-                        finish()
                     }
-                }
 
-                // Hiển thị UI call
-                currentCall?.let { call ->
-                    LaunchCallPermissions(call = call)
-                    
-                    // Xử lý nút back và kết thúc cuộc gọi bằng OnBackPressedDispatcher
-                    androidx.compose.runtime.DisposableEffect(call) {
-                        // Cleanup callback cũ nếu có
-                        onBackPressedCallback?.remove()
-                        
-                        // Tạo callback mới cho back button
-                        val callback = object : OnBackPressedCallback(true) {
-                            override fun handleOnBackPressed() {
-                                Log.d("VideoCallScreen", "🔙 OnBackPressedCallback triggered")
+                    // Hiển thị UI call
+                    currentCall?.let { call ->
+                        LaunchCallPermissions(call = call)
+
+                        // Xử lý nút back và kết thúc cuộc gọi bằng OnBackPressedDispatcher
+                        androidx.compose.runtime.DisposableEffect(call) {
+                            // Cleanup callback cũ nếu có
+                            onBackPressedCallback?.remove()
+
+                            // Tạo callback mới cho back button
+                            val callback = object : OnBackPressedCallback(true) {
+                                override fun handleOnBackPressed() {
+                                    Log.d("VideoCallScreen", "🔙 OnBackPressedCallback triggered")
+                                    if (!isHandlingCallEnd.get()) {
+                                        handleCallEnd(call, coroutineScope)
+                                    } else {
+                                        Log.d("VideoCallScreen", "⚠️ handleCallEnd already in progress, ignoring")
+                                    }
+                                }
+                            }
+                            // Đăng ký callback với dispatcher
+                            onBackPressedDispatcher.addCallback(callback)
+                            onBackPressedCallback = callback
+
+                            // Cleanup khi DisposableEffect bị dispose
+                            onDispose {
+                                callback.remove()
+                                if (onBackPressedCallback == callback) {
+                                    onBackPressedCallback = null
+                                }
+                            }
+                        }
+
+                        // Xử lý nút back trong Compose (backup) - DISABLED để tránh conflict
+                        // BackHandler sẽ không được gọi nếu OnBackPressedCallback đã xử lý
+                        BackHandler(enabled = false) {
+                            Log.d("VideoCallScreen", "🔙 BackHandler triggered (should not happen)")
+                            if (!isHandlingCallEnd.get()) {
+                                handleCallEnd(call, coroutineScope)
+                            }
+                        }
+
+                        // Lắng nghe sự kiện khi call kết thúc hoặc connection thay đổi
+                        // LƯU Ý: Không gọi handleCallEnd ở đây vì nó sẽ được gọi từ button press
+                        // Chỉ log để theo dõi
+                        LaunchedEffect(call) {
+                            // Theo dõi connection state
+                            call.state.connection.collect { connection ->
+                                Log.d("VideoCallScreen", "📞 Connection state: $connection")
+
+                                // Không gọi handleCallEnd ở đây vì sẽ được gọi từ button press
+                                // Chỉ log để debug
+                                if (connection is io.getstream.video.android.core.RealtimeConnection.Disconnected) {
+                                    Log.d("VideoCallScreen", "📞 Call disconnected (handleCallEnd should have been called already)")
+                                }
+                            }
+                        }
+
+                        // Lắng nghe sự kiện khi call state thay đổi (để biết khi call kết thúc)
+                        // LƯU Ý: Không gọi handleCallEnd ở đây vì nó sẽ được gọi từ button press
+                        LaunchedEffect(call) {
+                            try {
+                                // Subscribe để lắng nghe events từ call
+                                call.subscribe { event ->
+                                    Log.d("VideoCallScreen", "📞 Call event: ${event::class.simpleName}")
+
+                                    // Chỉ log events, không gọi handleCallEnd vì sẽ được gọi từ button press
+                                    when (event) {
+                                        is io.getstream.video.android.core.events.CallEndedSfuEvent -> {
+                                            Log.d("VideoCallScreen", "📞 Call ended event received (handleCallEnd should have been called already)")
+                                        }
+                                        is io.getstream.android.video.generated.models.CallEndedEvent -> {
+                                            Log.d("VideoCallScreen", "📞 CallEndedEvent received (handleCallEnd should have been called already)")
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("VideoCallScreen", "❌ Error subscribing to call events: ${e.message}", e)
+                            }
+                        }
+
+                        // Lắng nghe khi connection thay đổi thành Disconnected (call đã kết thúc)
+                        // Lưu ý: Chỉ gửi tin nhắn khi connection disconnected, không gọi handleCallEnd
+                        // vì handleCallEnd đã được gọi từ onBackPressed hoặc BackHandler
+                        var messageSent by remember { mutableStateOf(false) }
+                        LaunchedEffect(call) {
+                            call.state.connection.collect { connection ->
+                                Log.d("VideoCallScreen", "📞 Connection state changed: $connection")
+                                if (connection is io.getstream.video.android.core.RealtimeConnection.Disconnected && !messageSent) {
+                                    Log.d("VideoCallScreen", "📞 Connection disconnected - sending message if not sent")
+                                    // Chỉ gửi tin nhắn nếu chưa gửi (tránh gửi 2 lần)
+                                    val durationInMs = call.state.durationInMs.value ?:
+                                    (if (callStartTime > 0) System.currentTimeMillis() - callStartTime else 0)
+                                    val durationText = if (durationInMs > 0) formatCallDuration(durationInMs) else "0:00"
+                                    sendCallEndedMessage(durationText)
+                                    messageSent = true
+                                }
+                            }
+                        }
+
+                        CallContent(
+                            modifier = Modifier.fillMaxSize(),
+                            call = call,
+                            onBackPressed = {
+                                Log.d("VideoCallScreen", "🔙 CallContent onBackPressed called")
                                 if (!isHandlingCallEnd.get()) {
                                     handleCallEnd(call, coroutineScope)
                                 } else {
                                     Log.d("VideoCallScreen", "⚠️ handleCallEnd already in progress, ignoring")
                                 }
                             }
-                        }
-                        // Đăng ký callback với dispatcher
-                        onBackPressedDispatcher.addCallback(callback)
-                        onBackPressedCallback = callback
-                        
-                        // Cleanup khi DisposableEffect bị dispose
-                        onDispose {
-                            callback.remove()
-                            if (onBackPressedCallback == callback) {
-                                onBackPressedCallback = null
-                            }
-                        }
+                        )
                     }
-                    
-                    // Xử lý nút back trong Compose (backup) - DISABLED để tránh conflict
-                    // BackHandler sẽ không được gọi nếu OnBackPressedCallback đã xử lý
-                    BackHandler(enabled = false) {
-                        Log.d("VideoCallScreen", "🔙 BackHandler triggered (should not happen)")
-                        if (!isHandlingCallEnd.get()) {
-                            handleCallEnd(call, coroutineScope)
-                        }
-                    }
-                    
-                    // Lắng nghe sự kiện khi call kết thúc hoặc connection thay đổi
-                    // LƯU Ý: Không gọi handleCallEnd ở đây vì nó sẽ được gọi từ button press
-                    // Chỉ log để theo dõi
-                    LaunchedEffect(call) {
-                        // Theo dõi connection state
-                        call.state.connection.collect { connection ->
-                            Log.d("VideoCallScreen", "📞 Connection state: $connection")
-                            
-                            // Không gọi handleCallEnd ở đây vì sẽ được gọi từ button press
-                            // Chỉ log để debug
-                            if (connection is io.getstream.video.android.core.RealtimeConnection.Disconnected) {
-                                Log.d("VideoCallScreen", "📞 Call disconnected (handleCallEnd should have been called already)")
-                            }
-                        }
-                    }
-                    
-                    // Lắng nghe sự kiện khi call state thay đổi (để biết khi call kết thúc)
-                    // LƯU Ý: Không gọi handleCallEnd ở đây vì nó sẽ được gọi từ button press
-                    LaunchedEffect(call) {
-                        try {
-                            // Subscribe để lắng nghe events từ call
-                            call.subscribe { event ->
-                                Log.d("VideoCallScreen", "📞 Call event: ${event::class.simpleName}")
-                                
-                                // Chỉ log events, không gọi handleCallEnd vì sẽ được gọi từ button press
-                                when (event) {
-                                    is io.getstream.video.android.core.events.CallEndedSfuEvent -> {
-                                        Log.d("VideoCallScreen", "📞 Call ended event received (handleCallEnd should have been called already)")
-                                    }
-                                    is io.getstream.android.video.generated.models.CallEndedEvent -> {
-                                        Log.d("VideoCallScreen", "📞 CallEndedEvent received (handleCallEnd should have been called already)")
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("VideoCallScreen", "❌ Error subscribing to call events: ${e.message}", e)
-                        }
-                    }
-                    
-                    // Lắng nghe khi connection thay đổi thành Disconnected (call đã kết thúc)
-                    // Lưu ý: Chỉ gửi tin nhắn khi connection disconnected, không gọi handleCallEnd
-                    // vì handleCallEnd đã được gọi từ onBackPressed hoặc BackHandler
-                    var messageSent by remember { mutableStateOf(false) }
-                    LaunchedEffect(call) {
-                        call.state.connection.collect { connection ->
-                            Log.d("VideoCallScreen", "📞 Connection state changed: $connection")
-                            if (connection is io.getstream.video.android.core.RealtimeConnection.Disconnected && !messageSent) {
-                                Log.d("VideoCallScreen", "📞 Connection disconnected - sending message if not sent")
-                                // Chỉ gửi tin nhắn nếu chưa gửi (tránh gửi 2 lần)
-                                val durationInMs = call.state.durationInMs.value ?: 
-                                    (if (callStartTime > 0) System.currentTimeMillis() - callStartTime else 0)
-                                val durationText = if (durationInMs > 0) formatCallDuration(durationInMs) else "0:00"
-                                sendCallEndedMessage(durationText)
-                                messageSent = true
-                            }
-                        }
-                    }
-                    
-                    CallContent(
-                        modifier = Modifier.fillMaxSize(),
-                        call = call,
-                        onBackPressed = {
-                            Log.d("VideoCallScreen", "🔙 CallContent onBackPressed called")
-                            if (!isHandlingCallEnd.get()) {
-                                handleCallEnd(call, coroutineScope)
-                            } else {
-                                Log.d("VideoCallScreen", "⚠️ handleCallEnd already in progress, ignoring")
-                            }
-                        }
-                    )
                 }
             }
+
         }
     }
 
