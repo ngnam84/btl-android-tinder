@@ -1,13 +1,12 @@
 [versions]
 accompanistSystemuicontroller = "0.36.0"
 activityCompose = "1.11.0"
-agp = "8.13.1"
+agp = "8.13.0"
 animatedNavigationBar = "1.0.0"
 coilCompose = "3.3.0"
-firebaseBom = "34.5.0"
-firebaseBomVersion = "33.1.2"
+firebaseAnalytics = "23.0.0"
+firebaseBom = "34.4.0"
 firebaseFunctionsKtxVersion = "21.2.1"
-googleFirebaseFunctionsKtx = "21.2.1"
 hiltNavigationCompose = "1.3.0"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
@@ -30,14 +29,22 @@ firebaseFirestore = "26.0.2"
 firebaseStorage = "22.0.1"
 firebaseAuthKtx = "23.2.1"
 firebaseAuth = "24.0.1"
-streamChat = "6.26.0"
+streamChatAndroidClient = "6.27.0"
+streamChatAndroidComposeUi = "6.27.0"
+streamChatAndroidComposeVersion = "6.27.0"
+streamChatAndroidOfflineVersion = "6.27.0"
+streamChatAndroidState = "6.27.0"
+streamChatAndroidUiComponents = "6.27.0"
+streamVideoAndroidUiCompose = "1.16.0"
+streamChatAndroidOffline = "7.7.0"
+streamChatAndroidCompose = "7.7.0"
 toasty = "1.5.2"
 credentials = "1.5.0"
 credentialsPlayServicesAuth = "1.5.0"
 googleid = "1.1.1"
 foundationLayout = "1.9.4"
+firebaseFunctionsKtx = "21.1.2"
 composeMaterial = "1.5.5"
-firebaseFunctionsKtx = "21.2.1"
 firebaseAppcheckDebug = "19.0.1"
 
 
@@ -57,11 +64,10 @@ androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview
 animated-navigation-bar = { module = "com.exyte:animated-navigation-bar", version.ref = "animatedNavigationBar" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilCompose" }
-com-google-firebase-firebase-functions-ktx = { module = "com.google.firebase:firebase-functions-ktx" }
-com-google-firebase-firebase-functions-ktx2 = { module = "com.google.firebase:firebase-functions-ktx" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-functions-ktx-v2121 = { module = "com.google.firebase:firebase-functions-ktx", version.ref = "googleFirebaseFunctionsKtx" }
+firebase-functions-ktx-v2121 = { module = "com.google.firebase:firebase-functions-ktx", version.ref = "firebaseFunctionsKtxVersion" }
+google-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -79,16 +85,22 @@ firebase-storage = { group = "com.google.firebase", name = "firebase-storage", v
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 motiontoast = { module = "com.github.Spikeysanju:MotionToast", version.ref = "motiontoast" }
-stream-chat-android-compose = { module = "io.getstream:stream-chat-android-compose", version.ref = "streamChat" }
-stream-chat-android-offline = { module = "io.getstream:stream-chat-android-offline", version.ref = "streamChat" }
+stream-chat-android-client = { module = "io.getstream:stream-chat-android-client", version.ref = "streamChatAndroidClient" }
+stream-chat-android-compose = { module = "io.getstream:stream-chat-android-compose", version.ref = "streamChatAndroidComposeVersion" }
+stream-chat-android-compose-ui-v6270 = { module = "io.getstream:stream-chat-android-compose", version.ref = "streamChatAndroidComposeUi" }
+stream-chat-android-offline-v6270 = { module = "io.getstream:stream-chat-android-offline", version.ref = "streamChatAndroidOfflineVersion" }
+stream-chat-android-state = { module = "io.getstream:stream-chat-android-state", version.ref = "streamChatAndroidState" }
+stream-chat-android-ui-components = { module = "io.getstream:stream-chat-android-ui-components", version.ref = "streamChatAndroidUiComponents" }
+stream-video-android-ui-compose = { module = "io.getstream:stream-video-android-ui-compose", version.ref = "streamVideoAndroidUiCompose" }
+stream-chat-android-offline = { module = "io.getstream:stream-chat-android-offline", version.ref = "streamChatAndroidOffline" }
+stream-chat-android-compose-ui = { module = "io.getstream:stream-chat-android-compose-ui", version.ref = "streamChatAndroidCompose" }
 toasty = { module = "com.github.GrenderG:Toasty", version.ref = "toasty" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
+firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
-
-firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx" }
 google-firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug", version.ref = "firebaseAppcheckDebug" }
 
