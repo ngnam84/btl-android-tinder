@@ -58,6 +58,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import meshGradient
+import com.google.android.material.chip.Chip
+import androidx.compose.foundation.layout.FlowRow
+import androidx.wear.compose.material.ChipDefaults
+import androidx.compose.material3.FilterChip
 
 enum class Gender {
     MALE, FEMALE, ANY
@@ -84,24 +88,31 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         var genderPreference by rememberSaveable {
             mutableStateOf(Gender.valueOf(gpreper))
         }
+        var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
         val scrollState = rememberScrollState()
         Column(modifier = Modifier.background(Color.White)){
             ProfileContent(
-                modifier = Modifier.weight(1f).verticalScroll(scrollState).padding(top = 32.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+                    .padding(top = 32.dp),
                 vm=vm,
                 name=name,
                 username=username,
                 bio = bio,
                 gender = gender,
                 genderPreference = genderPreference,
+                interests = interests,
                 onNameChange = {name = it},
                 onUsernameChange = {username = it},
                 onBioChange = { bio = it},
                 onGenderChange = {gender = it},
                 onGenderPreferenceChange = {genderPreference=it},
+                onInterestsChange = {interests = it},
                 onSave = {
-                    vm.updateProfileData(name,username,bio,gender,genderPreference)
+                    //vm.updateProfileData(name,username,bio,gender,genderPreference,interests)
+                    //vm.updateProfileData(name,username,bio,gender,genderPreference)
                 },
                 onBack = { navigateTo(navController, DestinationScreen.Swipe.route) },
                 onLogout = {
@@ -127,11 +138,13 @@ fun ProfileContent(
     bio: String,
     gender: Gender,
     genderPreference: Gender,
+    interests: List<String>,
     onNameChange:(String) -> Unit,
     onUsernameChange:(String) -> Unit,
     onBioChange:(String) -> Unit,
     onGenderChange:(Gender) -> Unit,
     onGenderPreferenceChange:(Gender) -> Unit,
+    onInterestsChange:(List<String>) -> Unit,
     onSave: () -> Unit,
     onBack :() -> Unit,
     onLogout : () -> Unit
@@ -139,7 +152,8 @@ fun ProfileContent(
 ){
     val imageUrl = vm.userData.value?.imageUrl
     Column(modifier = modifier){
-        Row(modifier = Modifier.fillMaxWidth()
+        Row(modifier = Modifier
+            .fillMaxWidth()
             .padding(8.dp),horizontalArrangement = Arrangement.SpaceBetween
         ){
             Text("Back",Modifier.clickable {onBack.invoke()})
@@ -149,7 +163,9 @@ fun ProfileContent(
         CommonDivider()
 
         ProfileImage(imageUrl = imageUrl,vm = vm)
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically)
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
         {
             Text("Username",modifier = Modifier.width(100.dp))
             TextField(
@@ -161,7 +177,9 @@ fun ProfileContent(
 
         CommonDivider()
 
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically)
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
         {
             Text("Name",modifier = Modifier.width(100.dp))
             TextField(
@@ -171,7 +189,9 @@ fun ProfileContent(
             )
         }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically)
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
         {
             Text("Bio",modifier = Modifier.width(100.dp))
             TextField(
@@ -182,9 +202,13 @@ fun ProfileContent(
             )
         }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically)
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
         {
-            Text("I am a ", modifier = Modifier.width(100.dp).padding(8.dp))
+            Text("I am a ", modifier = Modifier
+                .width(100.dp)
+                .padding(8.dp))
             Column(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically){
                     RadioButton(
@@ -194,7 +218,7 @@ fun ProfileContent(
                         text = "Man",
                         modifier = Modifier
                             .padding(4.dp)
-                            .clickable{onGenderChange(Gender.MALE)})
+                            .clickable { onGenderChange(Gender.MALE) })
 
                 }
                 Row(verticalAlignment = Alignment.CenterVertically){
@@ -205,7 +229,7 @@ fun ProfileContent(
                         text = "Girl",
                         modifier = Modifier
                             .padding(4.dp)
-                            .clickable{onGenderChange(Gender.FEMALE)})
+                            .clickable { onGenderChange(Gender.FEMALE) })
 
                 }
             }
@@ -213,9 +237,13 @@ fun ProfileContent(
 
         CommonDivider()
 
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically)
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
         {
-            Text("I'm looking for", modifier = Modifier.width(100.dp).padding(8.dp))
+            Text("I'm looking for", modifier = Modifier
+                .width(100.dp)
+                .padding(8.dp))
             Column(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically){
                     RadioButton(
@@ -225,7 +253,7 @@ fun ProfileContent(
                         text = "Male",
                         modifier = Modifier
                             .padding(4.dp)
-                            .clickable{onGenderPreferenceChange(Gender.MALE)})
+                            .clickable { onGenderPreferenceChange(Gender.MALE) })
 
                 }
                 Row(verticalAlignment = Alignment.CenterVertically){
@@ -236,7 +264,7 @@ fun ProfileContent(
                         text = "Female",
                         modifier = Modifier
                             .padding(4.dp)
-                            .clickable{onGenderPreferenceChange(Gender.FEMALE)})
+                            .clickable { onGenderPreferenceChange(Gender.FEMALE) })
 
                 }
                 Row(verticalAlignment = Alignment.CenterVertically){
@@ -247,19 +275,27 @@ fun ProfileContent(
                         text = "Any",
                         modifier = Modifier
                             .padding(4.dp)
-                            .clickable{onGenderPreferenceChange(Gender.ANY)})
+                            .clickable { onGenderPreferenceChange(Gender.ANY) })
 
                 }
             }
         }
+
         CommonDivider()
-        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center)
+        InterestsSelector(
+            selectedInterests = interests,
+            onInterestsChange = onInterestsChange
+        )
+        CommonDivider()
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center)
         {
             Button(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .height(50.dp)
-                    .clickable {onLogout.invoke()},
+                    .clickable { onLogout.invoke() },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(25.dp),
                 contentPadding = PaddingValues(),
@@ -293,8 +329,6 @@ fun ProfileContent(
     }
 }
 
-
-
 @Composable
 fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
     val launcher = rememberLauncherForActivityResult(
@@ -318,31 +352,39 @@ fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
         }
     }
 
-    Box(modifier = Modifier.height(IntrinsicSize.Min).padding(0.dp)
+    Box(modifier = Modifier
+        .height(IntrinsicSize.Min)
+        .padding(0.dp)
         .meshGradient(
-        points = listOf(
-            listOf(
-                Offset(0f, 0f) to Color(0xFFFFB3C6),
-                Offset(.5f, 0f) to Color(0xFFFFB3C6),
-                Offset(1f, 0f) to Color(0xFFFFB3C6),
+            points = listOf(
+                listOf(
+                    Offset(0f, 0f) to Color(0xFFFFB3C6),
+                    Offset(.5f, 0f) to Color(0xFFFFB3C6),
+                    Offset(1f, 0f) to Color(0xFFFFB3C6),
+                ),
+                listOf(
+                    Offset(0f, .5f) to Color(0xFFFF7898),
+                    Offset(.5f, .9f) to Color(0xFFFF7898),
+                    Offset(1f, .5f) to Color(0xFFFF7898),
+                ),
+                listOf(
+                    Offset(0f, 1f) to Color(0xFFF83460),
+                    Offset(.5f, 1f) to Color(0xFFF83460),
+                    Offset(1f, 1f) to Color(0xFFF83460),
+                ),
             ),
-            listOf(
-                Offset(0f, .5f) to Color(0xFFFF7898),
-                Offset(.5f, .9f) to Color(0xFFFF7898),
-                Offset(1f, .5f) to Color(0xFFFF7898),
-            ),
-            listOf(
-                Offset(0f, 1f) to Color(0xFFF83460),
-                Offset(.5f, 1f) to Color(0xFFF83460),
-                Offset(1f, 1f) to Color(0xFFF83460),
-            ),
-        ),
-    )) {
-        Column(modifier = Modifier.padding(8.dp).padding(top = 16.dp, bottom = 16.dp).fillMaxWidth().clickable{
-            launcher.launch("image/*")
-        },horizontalAlignment = Alignment.CenterHorizontally)
+        )) {
+        Column(modifier = Modifier
+            .padding(8.dp)
+            .padding(top = 16.dp, bottom = 16.dp)
+            .fillMaxWidth()
+            .clickable {
+                launcher.launch("image/*")
+            },horizontalAlignment = Alignment.CenterHorizontally)
         {
-            Card(shape = CircleShape,modifier = Modifier.padding(8.dp).size(100.dp)){
+            Card(shape = CircleShape,modifier = Modifier
+                .padding(8.dp)
+                .size(100.dp)){
                 CommonImage(data = imageUrl)
             }
             Text("Change profile picture", fontFamily = deliusFontFamily, color = Color.Black, fontWeight = FontWeight.Bold)
@@ -351,5 +393,49 @@ fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
         if(isLoading){
             CommonProgressSpinner()
         }
+    }
+}
+
+@Composable
+fun InterestsSelector(
+    selectedInterests: List<String>,
+    onInterestsChange: (List<String>) -> Unit
+) {
+    val allInterests = listOf(
+        "Bóng đá", "Bóng rổ", "Cầu lông", "Tennis",
+        "Chạy bộ", "Yoga", "Đọc sách", "Du lịch",
+        "Nấu ăn", "Game", "Nhạc", "Phim ảnh"
+    )
+
+    Column(modifier = Modifier.padding(8.dp)) {
+
+        Text("Chọn sở thích", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+        FlowRow(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),            //space between items
+            verticalArrangement = Arrangement.spacedBy(12.dp)               //space between cac lines
+        ) {
+            allInterests.forEach { interestitem ->
+                val isSelected = selectedInterests.contains(interestitem)
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        val newInterests = if (isSelected)
+                            selectedInterests - interestitem
+                        else
+                            selectedInterests + interestitem
+                        onInterestsChange(newInterests)
+                    },
+                    label = { Text(interestitem) }
+                )
+            }
+        }
+
+        Text(
+            text = "Đã chọn: ${selectedInterests.size}",
+            modifier = Modifier.padding(top = 12.dp)
+        )
     }
 }
