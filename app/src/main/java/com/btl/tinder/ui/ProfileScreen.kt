@@ -48,6 +48,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,9 +77,9 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
     else{
         val userData = vm.userData.value
         val g = if(userData?.gender.isNullOrEmpty()) "MALE"
-        else userData!!.gender!!.uppercase()
+        else userData.gender!!.uppercase()
         val gpreper = if(userData?.genderPreference.isNullOrEmpty()) "FEMALE"
-        else userData!!.genderPreference!!.uppercase()
+        else userData.genderPreference!!.uppercase()
         var name by rememberSaveable { mutableStateOf(userData?.name ?: "") }
         var username by rememberSaveable { mutableStateOf(userData?.username ?: "") }
         var bio by rememberSaveable { mutableStateOf(userData?.bio ?: "") }
@@ -91,12 +92,11 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
         val scrollState = rememberScrollState()
-        Column(modifier = Modifier.background(Color.White)){
+        Column(modifier = Modifier.background(Color.White).statusBarsPadding()){
             ProfileContent(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(scrollState)
-                    .padding(top = 32.dp),
+                    .verticalScroll(scrollState),
                 vm=vm,
                 name=name,
                 username=username,

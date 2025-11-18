@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -46,11 +47,15 @@ fun BottomNavigationMenu(selectedItem: BottomNavigationItem, navController: NavC
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight()
-            .padding(top = 4.dp)
+            .padding(16.dp)
+//            .wrapContentHeight()
+//            .padding(top = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .background(Color.White)
             .shadow(100.dp, RoundedCornerShape(50.dp), clip = false)
-
+            .clip(RoundedCornerShape(50.dp)),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         for (item in BottomNavigationItem.entries) {
             Image(
@@ -63,8 +68,8 @@ fun BottomNavigationMenu(selectedItem: BottomNavigationItem, navController: NavC
                     .clickable {
                         navigateTo(navController, item.navDestination.route)
                     },
-                colorFilter = if (item == selectedItem) ColorFilter.tint(Color.Black)
-                else ColorFilter.tint(Color.Gray)
+                colorFilter = if (item == selectedItem) ColorFilter.tint(Color(0xFF5E35B1))
+                else ColorFilter.tint(Color.Black)
             )
         }
     }
