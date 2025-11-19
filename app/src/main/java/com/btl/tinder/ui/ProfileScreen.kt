@@ -1,5 +1,8 @@
 package com.btl.tinder.ui
-
+import androidx.compose.material3.Icon
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,7 +16,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.OutlinedButton
 import androidx.navigation.NavController
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -62,7 +67,19 @@ import com.google.android.material.chip.Chip
 import androidx.compose.foundation.layout.FlowRow
 import androidx.wear.compose.material.ChipDefaults
 import androidx.compose.material3.FilterChip
-
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.collectAsState
+import com.btl.tinder.data.InterestData
+import androidx.compose.foundation.layout.Spacer
+import com.btl.tinder.FinalInterestValidator
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 enum class Gender {
     MALE, FEMALE, ANY
 }
@@ -401,41 +418,280 @@ fun InterestsSelector(
     selectedInterests: List<String>,
     onInterestsChange: (List<String>) -> Unit
 ) {
-    val allInterests = listOf(
-        "Bóng đá", "Bóng rổ", "Cầu lông", "Tennis",
-        "Chạy bộ", "Yoga", "Đọc sách", "Du lịch",
-        "Nấu ăn", "Game", "Nhạc", "Phim ảnh"
-    )
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val viewModel: TCViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+
+    val allInterests by viewModel.allInterests.collectAsState()
+    val interestsLoaded by viewModel.interestsLoaded.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+    var suggestions by remember { mutableStateOf<List<InterestData>>(emptyList()) }
+    var validationResult by remember { mutableStateOf<FinalInterestValidator.Result?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAllInterests()
+    }
+
+    // THÊM DEBUG LOG NÀY
+    LaunchedEffect(allInterests) {
+        android.util.Log.d("InterestSelector", "allInterests size: ${allInterests.size}")
+    }
+
+    LaunchedEffect(suggestions) {
+        android.util.Log.d("InterestSelector", "suggestions size: ${suggestions.size}")
+    }
+
+    LaunchedEffect(searchQuery, allInterests) {
+        if (searchQuery.isEmpty()) {
+            suggestions = allInterests.take(10)
+            validationResult = null
+        } else {
+            val lower = searchQuery.lowercase()
+            suggestions = allInterests
+                .filter { it.name.lowercase().contains(lower) }
+                .take(10)
+        }
+    }
 
     Column(modifier = Modifier.padding(8.dp)) {
+        Text("Interests", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
-        Text("Chọn sở thích", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
 
-        FlowRow(
-            modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),            //space between items
-            verticalArrangement = Arrangement.spacedBy(12.dp)               //space between cac lines
-        ) {
-            allInterests.forEach { interestitem ->
-                val isSelected = selectedInterests.contains(interestitem)
+        // Search TextField
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = {
+                searchQuery = it
+                validationResult = null
+            },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Input name of interest") },
+            leadingIcon = {
+                Icon(androidx.compose.material.icons.Icons.Default.Search, null)
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Close, null)
+                    }
+                }
+            },
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
+        )
 
-                FilterChip(
-                    selected = isSelected,
-                    onClick = {
-                        val newInterests = if (isSelected)
-                            selectedInterests - interestitem
-                        else
-                            selectedInterests + interestitem
-                        onInterestsChange(newInterests)
-                    },
-                    label = { Text(interestitem) }
-                )
+        Spacer(Modifier.height(8.dp))
+
+        // Suggestions dropdown
+        if (suggestions.isNotEmpty() && validationResult == null && searchQuery.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                    items(suggestions) { interest ->
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (!selectedInterests.contains(interest.name)) {
+                                            onInterestsChange(selectedInterests + interest.name)
+                                            viewModel.incrementInterestUsage(interest.id)
+                                        }
+                                        searchQuery = ""
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(interest.name, fontWeight = FontWeight.Bold)
+                                    Text(interest.category, fontSize = 12.sp, color = Color.Gray)
+                                }
+                            }
+                            CommonDivider()
+                        }
+                    }
+
+                    // Add new button
+                    if (searchQuery.length >= 2) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        scope.launch {
+                                            val result = FinalInterestValidator.validate(
+                                                searchQuery,
+                                                allInterests
+                                            )
+                                            validationResult = result
+                                        }
+                                    }
+                                    .padding(12.dp)
+                            ) {
+                                Icon(
+                                    androidx.compose.material.icons.Icons.Default.Add,
+                                    null,
+                                    tint = Color(0xFFFF7898)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Thêm \"$searchQuery\"",
+                                    color = Color(0xFFFF7898),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        Text(
-            text = "Đã chọn: ${selectedInterests.size}",
-            modifier = Modifier.padding(top = 12.dp)
-        )
+        // Typo suggestion
+        AnimatedVisibility(validationResult is FinalInterestValidator.Result.TypoSuggestion) {
+            (validationResult as? FinalInterestValidator.Result.TypoSuggestion)?.let { typo ->
+                Spacer(Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E6))
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Có phải bạn muốn nói:", fontSize = 12.sp, color = Color.Gray)
+                        Text(
+                            typo.suggested.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF7898)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row {
+                            Button(
+                                onClick = {
+                                    if (!selectedInterests.contains(typo.suggested.name)) {
+                                        onInterestsChange(selectedInterests + typo.suggested.name)
+                                        viewModel.incrementInterestUsage(typo.suggested.id)
+                                    }
+                                    searchQuery = ""
+                                    validationResult = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7898))
+                            ) {
+                                Text("Đúng rồi")
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            OutlinedButton(onClick = {
+                                viewModel.addNewInterest(typo.original) { newInterest ->
+                                    onInterestsChange(selectedInterests + newInterest.name)
+                                    searchQuery = ""
+                                    validationResult = null
+                                }
+                            }) {
+                                Text("Không, thêm \"${typo.original}\"")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // New interest
+        AnimatedVisibility(validationResult is FinalInterestValidator.Result.NewInterest) {
+            (validationResult as? FinalInterestValidator.Result.NewInterest)?.let { new ->
+                Spacer(Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Sẵn sàng thêm:", fontWeight = FontWeight.Bold)
+                        Text(new.name, fontSize = 18.sp)
+                        if (new.needsReview) {
+                            Text(
+                                "Sẽ được admin duyệt sau",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                viewModel.addNewInterest(new.name) { newInterest ->
+                                    onInterestsChange(selectedInterests + newInterest.name)
+                                    searchQuery = ""
+                                    validationResult = null
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        ) {
+                            Text("Thêm \"${new.name}\"")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Invalid
+        AnimatedVisibility(validationResult is FinalInterestValidator.Result.Invalid) {
+            (validationResult as? FinalInterestValidator.Result.Invalid)?.let { invalid ->
+                Spacer(Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Không hợp lệ:", fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                        Text(invalid.reason, fontSize = 14.sp)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = {
+                                searchQuery = ""
+                                validationResult = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Thử lại")
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Selected interests chips
+        if (selectedInterests.isNotEmpty()) {
+            Text("Đã chọn: ${selectedInterests.size}", fontSize = 14.sp, color = Color.Gray)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                selectedInterests.forEach { name ->
+                    FilterChip(
+                        selected = true,
+                        onClick = { onInterestsChange(selectedInterests - name) },
+                        label = { Text(name) },
+                        trailingIcon = {
+                            Icon(
+                                androidx.compose.material.icons.Icons.Default.Close,
+                                null,
+                                Modifier.size(16.dp)
+                            )
+                        }
+                    )
+                }
+            }
+        }
+        if (!interestsLoaded) {
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
     }
 }

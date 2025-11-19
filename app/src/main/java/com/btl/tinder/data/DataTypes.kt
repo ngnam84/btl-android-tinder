@@ -59,3 +59,15 @@ data class CityData(
     // Add a no-argument constructor for Firestore deserialization
     constructor() : this(null, null, null, null)
 }
+
+data class InterestData(
+    val id: String = "",
+    val name: String = "",
+    val nameNormalized: String = "",
+    val category: String = "Other",
+    val userGenerated: Boolean = false,
+    val approved: Boolean = true,
+    val usageCount: Int = 0
+) {
+    constructor() : this("", "", "", "Other", false, true, 0)
+}
