@@ -43,8 +43,8 @@ credentials = "1.5.0"
 credentialsPlayServicesAuth = "1.5.0"
 googleid = "1.1.1"
 foundationLayout = "1.9.4"
+firebaseFunctionsKtx = "21.1.2"
 composeMaterial = "1.5.5"
-firebaseFunctionsKtx = "21.2.1"
 firebaseAppcheckDebug = "19.0.1"
 
 
@@ -65,7 +65,6 @@ animated-navigation-bar = { module = "com.exyte:animated-navigation-bar", versio
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilCompose" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
-firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-functions-ktx-v2121 = { module = "com.google.firebase:firebase-functions-ktx", version.ref = "firebaseFunctionsKtxVersion" }
 google-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
@@ -103,6 +102,7 @@ androidx-foundation-layout = { group = "androidx.compose.foundation", name = "fo
 firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
 google-firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

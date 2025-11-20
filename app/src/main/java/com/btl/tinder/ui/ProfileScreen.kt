@@ -33,13 +33,11 @@ import com.btl.tinder.CommonDivider
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import com.btl.tinder.DestinationScreen
 import com.btl.tinder.navigateTo
-import com.google.android.gms.common.internal.service.Common
 import androidx.compose.runtime.setValue
 import com.btl.tinder.CommonImage
 import androidx.compose.foundation.layout.height
@@ -53,6 +51,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,9 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import meshGradient
-import com.google.android.material.chip.Chip
 import androidx.compose.foundation.layout.FlowRow
-import androidx.wear.compose.material.ChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.collectAsState
@@ -93,9 +90,9 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
     else{
         val userData = vm.userData.value
         val g = if(userData?.gender.isNullOrEmpty()) "MALE"
-        else userData!!.gender!!.uppercase()
+        else userData.gender!!.uppercase()
         val gpreper = if(userData?.genderPreference.isNullOrEmpty()) "FEMALE"
-        else userData!!.genderPreference!!.uppercase()
+        else userData.genderPreference!!.uppercase()
         var name by rememberSaveable { mutableStateOf(userData?.name ?: "") }
         var username by rememberSaveable { mutableStateOf(userData?.username ?: "") }
         var bio by rememberSaveable { mutableStateOf(userData?.bio ?: "") }
@@ -108,12 +105,11 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
         val scrollState = rememberScrollState()
-        Column(modifier = Modifier.background(Color.White)){
+        Column(modifier = Modifier.background(Color.White).statusBarsPadding()){
             ProfileContent(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(scrollState)
-                    .padding(top = 32.dp),
+                    .verticalScroll(scrollState),
                 vm=vm,
                 name=name,
                 username=username,

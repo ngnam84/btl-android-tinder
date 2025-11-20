@@ -47,12 +47,14 @@ android {
 }
 
 dependencies {
+
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.firebase.functions.ktx.v2121)
 
+    // --- Compose BOM ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -68,32 +70,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // --- AndroidX Core ---
+
+    // --- Android core ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.google.firebase.functions.ktx)
-    implementation(libs.firebase.appcheck.debug)
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)
-    implementation(libs.androidx.foundation.layout)
-    implementation(libs.androidx.compose.material)
 
     // --- Navigation ---
     implementation(libs.androidx.navigation.compose)
-
-    // --- Firebase ---
-    implementation(platform(libs.firebase.bom)) // BOM quản lý version tất cả Firebase
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.functions.ktx.v2121)
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.storage)
-    implementation("com.google.firebase:firebase-analytics:23.0.0")
-    implementation ("com.google.firebase:firebase-appcheck-debug")
 
     // --- Hilt / Dependency Injection ---
     implementation(libs.dagger.hilt.android)
@@ -105,6 +91,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-analytics:23.0.0")
+    implementation ("com.google.firebase:firebase-appcheck-debug")
 
 
 

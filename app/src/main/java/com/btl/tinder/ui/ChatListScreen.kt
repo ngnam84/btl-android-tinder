@@ -69,7 +69,7 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
 
     val clientInitializationState by client.clientState.initializationState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
