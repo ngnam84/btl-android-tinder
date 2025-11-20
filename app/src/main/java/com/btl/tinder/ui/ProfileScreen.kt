@@ -14,9 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.btl.tinder.CommonProgressSpinner
 import com.btl.tinder.TCViewModel
 import androidx.compose.runtime.mutableStateOf
@@ -28,13 +25,11 @@ import com.btl.tinder.CommonDivider
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import com.btl.tinder.DestinationScreen
 import com.btl.tinder.navigateTo
-import com.google.android.gms.common.internal.service.Common
 import androidx.compose.runtime.setValue
 import com.btl.tinder.CommonImage
 import androidx.compose.foundation.layout.height
@@ -59,9 +54,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import meshGradient
-import com.google.android.material.chip.Chip
 import androidx.compose.foundation.layout.FlowRow
-import androidx.wear.compose.material.ChipDefaults
 import androidx.compose.material3.FilterChip
 
 enum class Gender {
