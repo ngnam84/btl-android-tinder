@@ -56,6 +56,11 @@ class TCViewModel @Inject constructor(
     val cities = _cities.asStateFlow()
     private var searchJob: Job? = null
 
+    private val _allInterests = MutableStateFlow<List<InterestData>>(emptyList())
+    val allInterests = _allInterests.asStateFlow()
+    private val _interestsLoaded = MutableStateFlow(false)
+    val interestsLoaded = _interestsLoaded.asStateFlow()
+
     init {
         val currentUser = auth.currentUser
         // If a user is already logged in, treat it as a normal login flow
@@ -652,4 +657,52 @@ class TCViewModel @Inject constructor(
                 _cities.value = emptyList()
             }
     }
+
+    fun loadAllInterests() {
+        db.collection("interests")
+            .whereEqualTo("approved", true)
+            .orderBy("usageCount", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val interests = snapshot.documents.mapNotNull {
+                    it.toObject<InterestData>()
+                }
+                _allInterests.value = interests
+                _interestsLoaded.value = true
+                Log.d("TCViewModel", "Loaded ${interests.size} interests")
+            }
+            .addOnFailureListener { e ->
+                Log.e("TCViewModel", "Error loading interests", e)
+                _interestsLoaded.value = true
+            }
+    }
+
+    fun incrementInterestUsage(interestId: String) {
+        db.collection("interests").document(interestId)
+            .update("usageCount", FieldValue.increment(1))
+    }
+
+    fun addNewInterest(name: String, onComplete: (InterestData) -> Unit) {
+        val newInterest = InterestData(
+            id = db.collection("interests").document().id,
+            name = name,
+            nameNormalized = name.lowercase(),
+            category = "User Generated",
+            userGenerated = true,
+            approved = false,
+            usageCount = 1
+        )
+
+        db.collection("interests").document(newInterest.id)
+            .set(newInterest)
+            .addOnSuccessListener {
+                Log.d("TCViewModel", "New interest added: ${newInterest.name}")
+                onComplete(newInterest)
+            }
+            .addOnFailureListener { e ->
+                Log.e("TCViewModel", "Error adding interest", e)
+                handleException(e, "Could not add interest")
+            }
+    }
+
 }
