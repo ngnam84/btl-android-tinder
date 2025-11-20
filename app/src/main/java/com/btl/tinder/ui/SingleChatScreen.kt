@@ -9,6 +9,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
@@ -54,26 +59,31 @@ class SingleChatScreen : ComponentActivity() {
                         onBackPressed = { finish() }
                     )
                     
-                    // Nút video call overlay sát với tiêu đề người dùng
-                    VideoCallButton(
-                        onVideoCallClick = {
-                            // Mở màn hình video call
-                            if (userId.isNotEmpty()) {
-                                startActivity(
-                                    VideoCallScreen.getIntent(
-                                        context = activityContext,
-                                        callId = callId,
-                                        userId = userId,
-                                        userName = userName,
-                                        channelId = channelId
-                                    )
-                                )
-                            }
-                        },
+                    // Nút video call overlay gắn chặt với header
+                    // Sử dụng WindowInsets để tính toán vị trí động, phù hợp với mọi loại máy
+                    Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(top = 25.dp, end = 70.dp) // 16dp để center với header, 20dp cách tiêu đề
-                    )
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .padding(top = 7.dp, end = 50.dp) // Padding nhỏ để gắn chặt với header
+                    ) {
+                        VideoCallButton(
+                            onVideoCallClick = {
+                                // Mở màn hình video call
+                                if (userId.isNotEmpty()) {
+                                    startActivity(
+                                        VideoCallScreen.getIntent(
+                                            context = activityContext,
+                                            callId = callId,
+                                            userId = userId,
+                                            userName = userName,
+                                            channelId = channelId
+                                        )
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -89,7 +99,7 @@ class SingleChatScreen : ComponentActivity() {
         }
     }
 }
-
+// ui nút camc
 @Composable
 fun VideoCallButton(
     onVideoCallClick: () -> Unit,
