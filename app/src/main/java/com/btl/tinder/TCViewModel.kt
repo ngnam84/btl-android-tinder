@@ -52,7 +52,7 @@ class TCViewModel @Inject constructor(
     val signInState = mutableStateOf(SignInState.SIGNED_OUT)
     val userData = mutableStateOf<UserData?>(null)
 
-    val matchProfiles = mutableStateOf<List<UserData>>(listOf())
+    val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
 
     // --- City Search State ---
@@ -383,17 +383,6 @@ class TCViewModel @Inject constructor(
         inProgress.value = false
     }
 
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val earthRadiusKm = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return earthRadiusKm * c
-    }
-
     private fun calculateJaccardSimilarity(
         interests1: List<String>,
         interests2: List<String>
@@ -406,23 +395,48 @@ class TCViewModel @Inject constructor(
 
         return intersection.size.toDouble() / union.size.toDouble()
     }
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadiusKm = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return earthRadiusKm * c
+    }
 
     //tính độ tương thích
     private fun calculateMatchScore(
         currentUser: UserData,
         potential: UserData
     ): Double {
-        val INTEREST_WEIGHT = 0.5
-        val DISTANCE_WEIGHT = 0.2
+        val INTEREST_WEIGHT = 0.7
+        val DISTANCE_WEIGHT = 0.3
+        val MAX_DISTANCE_KM = 100 // Maximum distance to consider for scoring
 
+        // Interest Score
         val interestScore = calculateJaccardSimilarity(
             currentUser.interests ?: listOf(),
             potential.interests ?: listOf()
         )
 
-        val distanceScore = calculateDistance(currentUser.lat!!, currentUser.long!!, potential.lat!!, potential.long!!)
+//        // Distance Score (higher is better)
+//        val distanceScore = if (currentUser.lat != null && currentUser.long != null && potential.lat != null && potential.long != null) {
+//            val distance = calculateDistance(currentUser.lat!!, currentUser.long!!, potential.lat!!, potential.long!!)
+//            if (distance > MAX_DISTANCE_KM) {
+//                0.0 // Score is 0 if beyond the max distance
+//            } else {
+//                1.0 - (distance / MAX_DISTANCE_KM) // Linear decay
+//            }
+//        } else {
+//            0.0 // No location data, no distance score
+//        }
 
-        val totalScore = (INTEREST_WEIGHT * interestScore) + (DISTANCE_WEIGHT * distanceScore)
+        val totalScore = (INTEREST_WEIGHT * interestScore) //+ (DISTANCE_WEIGHT * distanceScore)
+
+        Log.d("MatchScore", "User: ${potential.name}, Interest: $interestScore, Total: $totalScore")
+
 
         return totalScore
     }
@@ -491,9 +505,8 @@ class TCViewModel @Inject constructor(
 
                     val rankedMatches = potentials
                         .map { UserMatch(it, calculateMatchScore(userData.value!!, it)) }
-                        .filter { it.score > 0.0 }
-                        .sortedByDescending { it.score }
-                        .map { it.user }
+                        .filter { it.score >= 0.0 }
+                        .sortedBy { it.score }
 
                     Log.d("TCViewModel", "Ranked matches: ${rankedMatches.size}")
                     matchProfiles.value = rankedMatches
