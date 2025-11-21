@@ -1,6 +1,7 @@
 package com.btl.tinder.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -11,12 +12,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import io.getstream.video.android.compose.theme.VideoTheme
@@ -74,6 +78,13 @@ class VideoCallScreen : ComponentActivity() {
         }
 
         setContent {
+            val view = LocalView.current
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val window = (view.context as Activity).window
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                }
+            }
             Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 VideoTheme {
                     var currentCall by remember { mutableStateOf<Call?>(null) }
@@ -344,6 +355,11 @@ class VideoCallScreen : ComponentActivity() {
                         }
                     }
                 }
+                 // Đảm bảo thời lượng không bị âm, có thể do lỗi đồng bộ thời gian
+                if (durationInMs != null && durationInMs < 0) {
+                    durationInMs = 0L
+                }
+
 
                 // Format thời lượng thành chuỗi dạng "MM:SS" hoặc "HH:MM:SS"
                 val durationText = if (durationInMs != null && durationInMs > 0) {

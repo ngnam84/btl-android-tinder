@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.firebase.functions.ktx.v2121)
+    implementation(libs.androidx.compose.ui.graphics)
 
     // --- Compose BOM ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")

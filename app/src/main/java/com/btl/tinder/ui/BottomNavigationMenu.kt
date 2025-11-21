@@ -1,13 +1,23 @@
 package com.btl.tinder.ui
 
+import android.graphics.RenderEffect
+import android.graphics.RenderEffect.createBlurEffect
+import android.graphics.Shader
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,14 +25,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ExperimentalGraphicsApi
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -38,42 +54,89 @@ import com.exyte.animatednavbar.animation.indendshape.shapeCornerRadius
 
 enum class BottomNavigationItem(val icon: Int, val navDestination: DestinationScreen, val index: Int) {
     SWIPE(R.drawable.baseline_swipe, DestinationScreen.Swipe, 0),
-    CHATLIST(R.drawable.baseline_chat, DestinationScreen.ChatList, 1),
+    CHATLIST(R.drawable.tooltip_2_24px, DestinationScreen.ChatList, 1),
     PROFILE(R.drawable.baseline_profile, DestinationScreen.Profile, 2)
 }
 
+@OptIn(ExperimentalGraphicsApi::class)
 @Composable
-fun BottomNavigationMenu(selectedItem: BottomNavigationItem, navController: NavController) {
+fun BottomNavigationMenu(
+    selectedItem: BottomNavigationItem,
+    navController: NavController
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-//            .wrapContentHeight()
-//            .padding(top = 4.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(Color.White)
-            .shadow(100.dp, RoundedCornerShape(50.dp), clip = false)
-            .clip(RoundedCornerShape(50.dp)),
+            .padding(bottom = 70.dp)
+            .padding(horizontal = 16.dp)
+            .graphicsLayer {
+                // Blur kính trong suốt
+//                renderEffect = RenderEffect
+//                    .BlurEffect(
+//                        radiusX = 30f,
+//                        radiusY = 30f,
+//                        edgeTreatment = TileMode.Decal
+//                    )
+            }
+            .background(
+                color = Color.Black.copy(alpha = 0.35f),   // đen nhám trong suốt
+                shape = RoundedCornerShape(40.dp)
+            )
+            .border(
+                1.dp,
+                Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.05f)
+                    )
+                ),
+                RoundedCornerShape(40.dp)
+            )
+            .height(60.dp) // tăng chiều cao
+            .shadow(
+                20.dp,
+                RoundedCornerShape(40.dp),
+                spotColor = Color.White.copy(alpha = 0.15f)
+            ),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        for (item in BottomNavigationItem.entries) {
-            Image(
-                painter = painterResource(id = item.icon),
-                contentDescription = null,
+        BottomNavigationItem.entries.forEach { item ->
+
+            val isSelected = item == selectedItem
+
+            Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .padding(top = 10.dp, bottom = 10.dp, start = 4.dp, end = 4.dp)
                     .weight(1f)
+                    .fillMaxHeight()
+                    .indication(
+                        interactionSource,
+                        ripple()
+                    )
                     .clickable {
                         navigateTo(navController, item.navDestination.route)
                     },
-                colorFilter = if (item == selectedItem) ColorFilter.tint(Color(0xFF5E35B1))
-                else ColorFilter.tint(Color.Black)
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(item.icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp),
+                    colorFilter = if (isSelected)
+                        ColorFilter.tint(Color(0xFFF8F8F8)) // tím nổi bật
+                    else
+                        ColorFilter.tint(Color.White.copy(alpha = 0.7f))
+                )
+            }
         }
     }
 }
+
+
+
+
 
 @Composable
 fun BottomNavigationMenu1(

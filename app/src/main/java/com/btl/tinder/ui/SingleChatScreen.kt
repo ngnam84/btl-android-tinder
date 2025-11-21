@@ -19,9 +19,12 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import io.getstream.chat.android.compose.ui.messages.MessagesScreen
@@ -47,7 +50,21 @@ class SingleChatScreen : ComponentActivity() {
         val callId = channelId.replace("messaging:", "").replace(":", "_")
 
         setContent {
+
+            val systemUiController = rememberSystemUiController()
+
+            SideEffect {
+                systemUiController.setStatusBarColor(
+                    color = Color.Transparent,
+                    darkIcons = true
+                )
+                systemUiController.setNavigationBarColor(
+                    color = Color.Transparent
+                )
+            }
+
             ChatTheme {
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     // MessagesScreen mặc định
                     MessagesScreen(
@@ -59,8 +76,6 @@ class SingleChatScreen : ComponentActivity() {
                         onBackPressed = { finish() }
                     )
 
-                    // Nút video call overlay gắn chặt với header
-                    // Sử dụng WindowInsets để tính toán vị trí động, phù hợp với mọi loại máy
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)

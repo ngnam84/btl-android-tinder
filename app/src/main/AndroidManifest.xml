@@ -34,6 +34,7 @@
         <activity
                 android:name=".ui.SingleChatScreen"
                 android:exported="false"
+                android:windowSoftInputMode="adjustResize"
                 android:theme="@style/Theme.BtlAndroidTinder" />
 
         <activity
