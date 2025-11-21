@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
@@ -379,6 +383,17 @@ class TCViewModel @Inject constructor(
         inProgress.value = false
     }
 
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadiusKm = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return earthRadiusKm * c
+    }
+
     private fun calculateJaccardSimilarity(
         interests1: List<String>,
         interests2: List<String>
@@ -397,47 +412,23 @@ class TCViewModel @Inject constructor(
         currentUser: UserData,
         potential: UserData
     ): Double {
-        val GENDER_WEIGHT = 0.2
         val INTEREST_WEIGHT = 0.5
-
-        val genderScore = 1.0
+        val DISTANCE_WEIGHT = 0.2
 
         val interestScore = calculateJaccardSimilarity(
             currentUser.interests ?: listOf(),
             potential.interests ?: listOf()
         )
 
-        val totalScore = (GENDER_WEIGHT * genderScore) + (INTEREST_WEIGHT * interestScore)
+        val distanceScore = calculateDistance(currentUser.lat!!, currentUser.long!!, potential.lat!!, potential.long!!)
+
+        val totalScore = (INTEREST_WEIGHT * interestScore) + (DISTANCE_WEIGHT * distanceScore)
 
         return totalScore
     }
 
     // ---------------------- MATCHING ----------------------
 
-//    private fun populateCards() {
-//        inProgressProfiles.value = true
-//        val g = userData.value?.gender?.uppercase() ?: "ANY"
-//        val gPref = userData.value?.genderPreference?.uppercase() ?: "ANY"
-//
-//        val cardsQuery = when (Gender.valueOf(gPref)) {
-//            Gender.MALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.MALE)
-//            Gender.FEMALE -> db.collection(COLLECTION_USER).whereEqualTo("gender", Gender.FEMALE)
-//            Gender.ANY -> db.collection(COLLECTION_USER)
-//        }
-//        val userGender = Gender.valueOf(g)
-//
-//        cardsQuery.where(
-//            com.google.firebase.firestore.Filter.and(
-//                com.google.firebase.firestore.Filter.notEqualTo("userId", userData.value?.userId),
-//                com.google.firebase.firestore.Filter.or(
-//                    com.google.firebase.firestore.Filter.equalTo("genderPreference", userGender),
-//                    com.google.firebase.firestore.Filter.equalTo("genderPreference", Gender.ANY)
-//                )
-//            )
-//        )
-//    }
-
-    //PopulateCards chay duoc
     private fun populateCards() {
         inProgressProfiles.value = true
         Log.d("TCViewModel", "populateCards called. Current User Data: ${userData.value}")
@@ -498,29 +489,13 @@ class TCViewModel @Inject constructor(
                     Log.d("TCViewModel", "Found ${potentials.size} potential matches after filtering.")
                     Log.d("TCViewModel", "===== CALCULATING SCORES =====")
 
-                    // Tính điểm và ranking
-                    val scoredMatches = potentials.map {
-                        val score = calculateMatchScore(userData.value!!, it)
-                        UserMatch(it, score)
-                    }
-
-                    Log.d("TCViewModel", "===== ALL SCORES (BEFORE FILTER) =====")
-                    scoredMatches.forEach {
-                        Log.d("TCViewModel", "[${it.user.name}] Score: ${String.format("%.2f", it.score)}")
-                    }
-
-                    val filteredMatches = scoredMatches.filter { it.score >= 0.00000001 }
-
-                    Log.d("TCViewModel", "Found ${potentials.size} potential matches after filtering.")
-
-                    // Tính điểm và ranking
                     val rankedMatches = potentials
                         .map { UserMatch(it, calculateMatchScore(userData.value!!, it)) }
-                        .filter { it.score >= 0.4 }
+                        .filter { it.score > 0.0 }
                         .sortedByDescending { it.score }
                         .map { it.user }
 
-                    Log.d("TCViewModel", "Ranked matches: ${rankedMatches.size} (threshold 0.4)")
+                    Log.d("TCViewModel", "Ranked matches: ${rankedMatches.size}")
                     matchProfiles.value = rankedMatches
                     inProgressProfiles.value = false
                 }
