@@ -406,39 +406,79 @@ class TCViewModel @Inject constructor(
         return earthRadiusKm * c
     }
 
-    //tính độ tương thích
+//    //tính độ tương thích
+//    private fun calculateMatchScore(
+//        currentUser: UserData,
+//        potential: UserData
+//    ): Double {
+//        val INTEREST_WEIGHT = 0.7
+//        val DISTANCE_WEIGHT = 0.3
+//        val MAX_DISTANCE_KM = 100 // Maximum distance to consider for scoring
+//
+//        // Interest Score
+//        val interestScore = calculateJaccardSimilarity(
+//            currentUser.interests ?: listOf(),
+//            potential.interests ?: listOf()
+//        )
+//
+////        // Distance Score (higher is better)
+////        val distanceScore = if (currentUser.lat != null && currentUser.long != null && potential.lat != null && potential.long != null) {
+////            val distance = calculateDistance(currentUser.lat!!, currentUser.long!!, potential.lat!!, potential.long!!)
+////            if (distance > MAX_DISTANCE_KM) {
+////                0.0 // Score is 0 if beyond the max distance
+////            } else {
+////                1.0 - (distance / MAX_DISTANCE_KM) // Linear decay
+////            }
+////        } else {
+////            0.0 // No location data, no distance score
+////        }
+//
+//        val totalScore = (INTEREST_WEIGHT * interestScore) //+ (DISTANCE_WEIGHT * distanceScore)
+//
+//        Log.d("MatchScore", "User: ${potential.name}, Interest: $interestScore, Total: $totalScore")
+//
+//
+//        return totalScore
+//    }
+
     private fun calculateMatchScore(
         currentUser: UserData,
         potential: UserData
     ): Double {
         val INTEREST_WEIGHT = 0.7
         val DISTANCE_WEIGHT = 0.3
-        val MAX_DISTANCE_KM = 100 // Maximum distance to consider for scoring
+        val MAX_DISTANCE_KM = 100.0
 
-        // Interest Score
+        // 1. Tính điểm Interest
         val interestScore = calculateJaccardSimilarity(
             currentUser.interests ?: listOf(),
             potential.interests ?: listOf()
         )
 
-//        // Distance Score (higher is better)
-//        val distanceScore = if (currentUser.lat != null && currentUser.long != null && potential.lat != null && potential.long != null) {
-//            val distance = calculateDistance(currentUser.lat!!, currentUser.long!!, potential.lat!!, potential.long!!)
-//            if (distance > MAX_DISTANCE_KM) {
-//                0.0 // Score is 0 if beyond the max distance
-//            } else {
-//                1.0 - (distance / MAX_DISTANCE_KM) // Linear decay
-//            }
-//        } else {
-//            0.0 // No location data, no distance score
-//        }
+        // 2. Tính điểm Distance
+        var distanceScore = 0.0
 
-        val totalScore = (INTEREST_WEIGHT * interestScore) //+ (DISTANCE_WEIGHT * distanceScore)
+        // ✅ LẤY GIÁ TRỊ AN TOÀN BẰNG CÁCH ÉP KIỂU .toDouble()
+        // Dùng safe call (?.) vì lat/long có thể null
+        val lat1 = currentUser.lat?.toDouble()
+        val lon1 = currentUser.long?.toDouble()
+        val lat2 = potential.lat?.toDouble()
+        val lon2 = potential.long?.toDouble()
 
-        Log.d("MatchScore", "User: ${potential.name}, Interest: $interestScore, Total: $totalScore")
+        if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+            val distance = calculateDistance(lat1, lon1, lat2, lon2)
 
+            Log.d("MatchCalc", "Khoảng cách tới ${potential.name}: $distance km")
 
-        return totalScore
+            distanceScore = if (distance > MAX_DISTANCE_KM) {
+                0.0
+            } else {
+                1.0 - (distance / MAX_DISTANCE_KM)
+            }
+        }
+
+        // 3. Tổng điểm
+        return (INTEREST_WEIGHT * interestScore) + (DISTANCE_WEIGHT * distanceScore)
     }
 
     // ---------------------- MATCHING ----------------------
