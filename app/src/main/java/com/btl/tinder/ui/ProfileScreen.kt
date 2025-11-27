@@ -77,6 +77,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 enum class Gender {
     MALE, FEMALE, ANY
 }
@@ -104,12 +106,10 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         }
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
-        val scrollState = rememberScrollState()
         Column(modifier = Modifier.background(Color.White).statusBarsPadding()){
             ProfileContent(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(scrollState),
+                    .weight(1f),
                 vm=vm,
                 name=name,
                 username=username,
@@ -164,7 +164,9 @@ fun ProfileContent(
 
 ){
     val imageUrl = vm.userData.value?.imageUrl
-    Column(modifier = modifier){
+    val scrollState = rememberScrollState()
+
+    Column(modifier = modifier.verticalScroll(scrollState).imePadding().navigationBarsPadding()){
         Row(modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),horizontalArrangement = Arrangement.SpaceBetween
@@ -489,8 +491,13 @@ fun InterestsSelector(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                    items(suggestions) { interest ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    suggestions.forEach { interest ->
                         Column {
                             Row(
                                 modifier = Modifier
@@ -516,33 +523,31 @@ fun InterestsSelector(
 
                     // Add new button
                     if (searchQuery.length >= 2) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        scope.launch {
-                                            val result = FinalInterestValidator.validate(
-                                                searchQuery,
-                                                allInterests
-                                            )
-                                            validationResult = result
-                                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        val result = FinalInterestValidator.validate(
+                                            searchQuery,
+                                            allInterests
+                                        )
+                                        validationResult = result
                                     }
-                                    .padding(12.dp)
-                            ) {
-                                Icon(
-                                    androidx.compose.material.icons.Icons.Default.Add,
-                                    null,
-                                    tint = Color(0xFFFF7898)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Thêm \"$searchQuery\"",
-                                    color = Color(0xFFFF7898),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Icon(
+                                androidx.compose.material.icons.Icons.Default.Add,
+                                null,
+                                tint = Color(0xFFFF7898)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Thêm \"$searchQuery\"",
+                                color = Color(0xFFFF7898),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
