@@ -9,6 +9,12 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -40,6 +46,7 @@ import com.btl.tinder.ui.AnimatedSplashScreen
 import com.btl.tinder.ui.ChatListScreen
 import com.btl.tinder.ui.FTSProfileScreen
 import com.btl.tinder.ui.LoginScreen
+import com.btl.tinder.ui.ProfileDetailScreen
 import com.btl.tinder.ui.ProfileScreen
 import com.btl.tinder.ui.SignupScreen
 import com.btl.tinder.ui.SingleChatScreen
@@ -60,6 +67,9 @@ sealed class DestinationScreen(val route: String) {
     object SingleChat : DestinationScreen("singleChat/{chatId}") {
         fun createRoute(id: String) = "singleChat/$id"
     }
+    object ProfileDetail : DestinationScreen("profileDetail/{userId}") {
+        fun createRoute(userId: String?) = "profileDetail/$userId"
+    }
 }
 
 @AndroidEntryPoint
@@ -79,6 +89,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun SwipeAppNavigation() {
     val navController = rememberNavController()
@@ -108,7 +119,16 @@ fun SwipeAppNavigation() {
         composable(DestinationScreen.ChatList.route) {
             ChatListScreen(navController,vm)
         }
-
+        composable(
+            route = DestinationScreen.ProfileDetail.route,
+            enterTransition = { scaleIn(animationSpec = tween(1200)) + fadeIn() },
+            exitTransition = { scaleOut(animationSpec = tween(1200)) + fadeOut() }
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            userId?.let {
+                ProfileDetailScreen(userId = it, navController = navController, vm = vm)
+            }
+        }
     }
 }
 

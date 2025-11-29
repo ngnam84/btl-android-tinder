@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.btl.tinder.CommonImage
 import com.btl.tinder.CommonProgressSpinner
+import com.btl.tinder.DestinationScreen
 import com.btl.tinder.R
 import com.btl.tinder.TCViewModel
 import com.btl.tinder.UserMatch
@@ -128,7 +130,8 @@ fun SwipeScreen(navController: NavController, vm: TCViewModel) {
                                     }
                                 },
                                 onSwipeCancel = { Log.d("Swipeable card", "Cancelled swipe") }),
-                        userMatch = userMatch
+                        userMatch = userMatch,
+                        navController = navController
                     )
                 }
             }
@@ -220,11 +223,13 @@ private fun CircleButton(
 private fun ProfileCard(
     modifier: Modifier,
     userMatch: UserMatch,
+    navController: NavController
 ) {
     val matchProfile = userMatch.user
     Card(
         modifier
             .shadow(8.dp, RoundedCornerShape(16.dp), clip = false, ambientColor = Color.Black.copy(alpha = 0.15f), spotColor = Color.Black.copy(alpha = 0.25f))
+            .clickable { navController.navigate(DestinationScreen.ProfileDetail.createRoute(matchProfile.userId)) }
     ) {
         Box {
             CommonImage(matchProfile.imageUrl, modifier = Modifier.fillMaxSize())
