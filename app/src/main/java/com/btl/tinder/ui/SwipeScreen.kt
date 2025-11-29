@@ -140,16 +140,34 @@ fun SwipeScreen(navController: NavController, vm: TCViewModel) {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                CircleButton(onClick = {
-                    scope.launch {
-                        states.reversed().firstOrNull { it.second.offset.value == Offset(0f, 0f) }?.second?.swipe(Direction.Left)
-                    }
-                }, drawableResId = R.drawable.cancel, backgroundColor = Color(0xFFE91E63), animateTrigger = animateLeftButtonTrigger.value)
-                CircleButton(onClick = {
-                    scope.launch {
-                        states.reversed().firstOrNull { it.second.offset.value == Offset(0f, 0f) }?.second?.swipe(Direction.Right)
-                    }
-                }, drawableResId = R.drawable.love, backgroundColor = Color(0xFF673AB7), animateTrigger = animateRightButtonTrigger.value)
+                CircleButton(
+                    onClick = {
+                        scope.launch {
+                            states.lastOrNull()?.let { (userMatch, state) ->
+                                state.swipe(Direction.Left)
+                                animateLeftButtonTrigger.value++
+                                vm.onDislike(userMatch.user)
+                            }
+                        }
+                    },
+                    drawableResId = R.drawable.cancel,
+                    backgroundColor = Color(0xFFE91E63),
+                    animateTrigger = animateLeftButtonTrigger.value
+                )
+                CircleButton(
+                    onClick = {
+                        scope.launch {
+                            states.lastOrNull()?.let { (userMatch, state) ->
+                                state.swipe(Direction.Right)
+                                animateRightButtonTrigger.value++
+                                vm.onLike(userMatch.user)
+                            }
+                        }
+                    },
+                    drawableResId = R.drawable.love,
+                    backgroundColor = Color(0xFF673AB7),
+                    animateTrigger = animateRightButtonTrigger.value
+                )
             }
 
             BottomNavigationMenu(
