@@ -121,14 +121,29 @@ fun SwipeAppNavigation() {
         }
         composable(
             route = DestinationScreen.ProfileDetail.route,
-            enterTransition = { scaleIn(animationSpec = tween(1200)) + fadeIn() },
-            exitTransition = { scaleOut(animationSpec = tween(1200)) + fadeOut() }
+
+            // Animation khi mở lên
+            enterTransition = {
+                fadeIn(animationSpec = tween(200)) +
+                        scaleIn(
+                            initialScale = 0.92f,
+                            animationSpec = tween(240)
+                        )
+            },
+
+//            // Không animation khi đóng
+//            exitTransition = { fadeOut(tween(1)) },
+//
+//            // Bỏ animation lúc popBackStack
+//            popEnterTransition = { fadeIn(tween(1)) },
+//            popExitTransition = { fadeOut(tween(1)) }
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
             userId?.let {
                 ProfileDetailScreen(userId = it, navController = navController, vm = vm)
             }
         }
+
     }
 }
 
