@@ -43,6 +43,8 @@ import com.btl.tinder.data.UserData
 import com.btl.tinder.swipecards.Direction
 import com.btl.tinder.swipecards.rememberSwipeableCardState
 import com.btl.tinder.swipecards.swipableCard
+import com.btl.tinder.ui.theme.deliusFontFamily
+import com.btl.tinder.ui.theme.playpenFontFamily
 import kotlinx.coroutines.launch
 import meshGradient
 

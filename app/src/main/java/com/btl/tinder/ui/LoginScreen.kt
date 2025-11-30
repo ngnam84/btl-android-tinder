@@ -55,7 +55,8 @@ import com.btl.tinder.DestinationScreen
 import com.btl.tinder.R
 import com.btl.tinder.TCViewModel
 import com.btl.tinder.navigateTo
-import com.btl.tinder.ui.deliusFontFamily
+import com.btl.tinder.ui.theme.deliusFontFamily
+import com.btl.tinder.ui.theme.pacificoFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

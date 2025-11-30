@@ -73,6 +73,8 @@ import com.btl.tinder.TCViewModel
 import com.btl.tinder.data.CityData
 import com.btl.tinder.data.Event
 import com.btl.tinder.navigateTo
+import com.btl.tinder.ui.theme.deliusFontFamily
+import com.btl.tinder.ui.theme.pacificoFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlin.String
 

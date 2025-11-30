@@ -79,6 +79,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.btl.tinder.ui.theme.deliusFontFamily
+
 enum class Gender {
     MALE, FEMALE, ANY
 }

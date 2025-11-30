@@ -62,20 +62,9 @@ import com.btl.tinder.DestinationScreen
 import com.btl.tinder.R
 import com.btl.tinder.TCViewModel
 import com.btl.tinder.navigateTo
+import com.btl.tinder.ui.theme.deliusFontFamily
+import com.btl.tinder.ui.theme.pacificoFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-
-val pacificoFontFamily = FontFamily(
-    Font(R.font.pacifico_regular, FontWeight.Normal)
-)
-
-val deliusFontFamily = FontFamily(
-    Font(R.font.delius_regular, FontWeight.Normal)
-)
-
-val playpenFontFamily = FontFamily(
-    Font(R.font.playpen_sans_variable_font_wght, FontWeight.Normal)
-)
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
