@@ -123,7 +123,9 @@ fun LoginScreen(navController: NavController, vm: TCViewModel) {
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black
                 ),
-                label = { Text(text = "Email", fontFamily = deliusFontFamily, color = Color.Black) })
+                label = { Text(text = "Email", fontFamily = deliusFontFamily, color = Color.Black) },
+                singleLine = true
+            )
 
             OutlinedTextField(
                 value = passwordState.value,
@@ -151,7 +153,8 @@ fun LoginScreen(navController: NavController, vm: TCViewModel) {
                     IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
                         Icon(imageVector = image, description, tint = Color.Black) // Changed icon color to black
                     }
-                }
+                },
+                singleLine = true
             )
 
             Spacer(modifier = Modifier.height(20.dp))

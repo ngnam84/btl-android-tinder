@@ -3,51 +3,24 @@ package com.btl.tinder.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -63,19 +36,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.btl.tinder.CommonDivider
-import com.btl.tinder.CommonImage
-import com.btl.tinder.CommonProgressSpinner
-import com.btl.tinder.DestinationScreen
-import com.btl.tinder.NotificationMessage
-import com.btl.tinder.TCViewModel
+import com.btl.tinder.*
 import com.btl.tinder.data.CityData
 import com.btl.tinder.data.Event
+import com.btl.tinder.data.InterestData
 import com.btl.tinder.navigateTo
 import com.btl.tinder.ui.theme.deliusFontFamily
 import com.btl.tinder.ui.theme.pacificoFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.launch
 import kotlin.String
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,6 +72,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
     var gender by rememberSaveable { mutableStateOf(Gender.MALE) }
     var genderPreference by rememberSaveable { mutableStateOf(Gender.FEMALE) }
     var selectedCity by remember { mutableStateOf<CityData?>(null) }
+    var interests by rememberSaveable { mutableStateOf(listOf<String>()) }
 
 
     Box(
@@ -119,7 +91,13 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                 )
             )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
             val gradientBrush = Brush.horizontalGradient(
                 colors = listOf(
                     Color(0xFFFF789B),
@@ -137,7 +115,6 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                     }
                 },
                 modifier = Modifier
-                    .statusBarsPadding()
                     .padding(16.dp),
                 fontSize = 50.sp,
                 fontFamily = pacificoFontFamily,
@@ -321,6 +298,14 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                CommonDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                InterestsSelector(
+                    selectedInterests = interests,
+                    onInterestsChange = { interests = it }
+                )
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -344,7 +329,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                             bio = bio,
                             gender = gender,
                             genderPreference = genderPreference,
-                            interests = listOf(),
+                            interests = interests,
                             address = selectedCity?.city,
                             lat = selectedCity?.lat,
                             long = selectedCity?.lng
@@ -486,4 +471,5 @@ fun CityAutocompleteTextField(vm: TCViewModel, onCitySelected: (CityData?) -> Un
         }
     }
 }
+
 

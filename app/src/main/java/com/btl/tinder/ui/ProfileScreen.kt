@@ -74,12 +74,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Close
+import com.btl.tinder.ui.theme.deliusFontFamily
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import com.btl.tinder.ui.theme.deliusFontFamily
 
 enum class Gender {
     MALE, FEMALE, ANY
@@ -108,7 +108,11 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         }
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
-        Column(modifier = Modifier.background(Color.White).statusBarsPadding()){
+        Column(modifier = Modifier
+            .background(Color.White)
+            .statusBarsPadding()
+            .fillMaxSize()
+        ){
             ProfileContent(
                 modifier = Modifier
                     .weight(1f),
@@ -168,7 +172,11 @@ fun ProfileContent(
     val imageUrl = vm.userData.value?.imageUrl
     val scrollState = rememberScrollState()
 
-    Column(modifier = modifier.verticalScroll(scrollState).imePadding().navigationBarsPadding()){
+    Column(modifier = modifier
+        .verticalScroll(scrollState)
+        .navigationBarsPadding()
+        .imePadding()
+    ){
         Row(modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),horizontalArrangement = Arrangement.SpaceBetween
@@ -351,7 +359,7 @@ fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ){
-        uri:Uri? ->
+            uri:Uri? ->
         uri?.let {vm.uploadProfileImage(uri)}
     }
 
@@ -455,7 +463,7 @@ fun InterestsSelector(
     }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        Text("Interests", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Interests", fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
 
         Spacer(Modifier.height(8.dp))
 
@@ -467,7 +475,7 @@ fun InterestsSelector(
                 validationResult = null
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Input name of interest") },
+            placeholder = { Text("Input name of interest", fontFamily = deliusFontFamily, color = Color.Gray) },
             leadingIcon = {
                 Icon(androidx.compose.material.icons.Icons.Default.Search, null)
             },
@@ -515,8 +523,8 @@ fun InterestsSelector(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(interest.name, fontWeight = FontWeight.Bold)
-                                    Text(interest.category, fontSize = 12.sp, color = Color.Gray)
+                                    Text(interest.name, fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
+                                    Text(interest.category, fontSize = 12.sp, color = Color.Gray, fontFamily = deliusFontFamily)
                                 }
                             }
                             CommonDivider()
@@ -546,9 +554,10 @@ fun InterestsSelector(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                "Thêm \"$searchQuery\"",
+                                "Add \"$searchQuery\"",
                                 color = Color(0xFFFF7898),
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = deliusFontFamily
                             )
                         }
                     }
@@ -565,12 +574,13 @@ fun InterestsSelector(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E6))
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Có phải bạn muốn nói:", fontSize = 12.sp, color = Color.Gray)
+                        Text("Did you mean:", fontSize = 12.sp, color = Color.Gray, fontFamily = deliusFontFamily)
                         Text(
                             typo.suggested.name,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFF7898)
+                            color = Color(0xFFFF7898),
+                            fontFamily = deliusFontFamily
                         )
                         Spacer(Modifier.height(8.dp))
                         Row {
@@ -585,7 +595,7 @@ fun InterestsSelector(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7898))
                             ) {
-                                Text("Đúng rồi")
+                                Text("Yes, that's it", fontFamily = deliusFontFamily)
                             }
                             Spacer(Modifier.width(8.dp))
                             OutlinedButton(onClick = {
@@ -595,7 +605,7 @@ fun InterestsSelector(
                                     validationResult = null
                                 }
                             }) {
-                                Text("Không, thêm \"${typo.original}\"")
+                                Text("No, add \"${typo.original}\"", fontFamily = deliusFontFamily)
                             }
                         }
                     }
@@ -612,13 +622,14 @@ fun InterestsSelector(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Sẵn sàng thêm:", fontWeight = FontWeight.Bold)
-                        Text(new.name, fontSize = 18.sp)
+                        Text("Ready to add:", fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
+                        Text(new.name, fontSize = 18.sp, fontFamily = deliusFontFamily, color = Color.Black)
                         if (new.needsReview) {
                             Text(
-                                "Sẽ được admin duyệt sau",
+                                "Will be reviewed by an admin later",
                                 fontSize = 12.sp,
-                                color = Color.Gray
+                                color = Color.Gray,
+                                fontFamily = deliusFontFamily
                             )
                         }
                         Spacer(Modifier.height(8.dp))
@@ -633,7 +644,7 @@ fun InterestsSelector(
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                         ) {
-                            Text("Thêm \"${new.name}\"")
+                            Text("Add \"${new.name}\"", fontFamily = deliusFontFamily)
                         }
                     }
                 }
@@ -649,8 +660,8 @@ fun InterestsSelector(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Không hợp lệ:", fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
-                        Text(invalid.reason, fontSize = 14.sp)
+                        Text("Invalid:", fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), fontFamily = deliusFontFamily)
+                        Text(invalid.reason, fontSize = 14.sp, fontFamily = deliusFontFamily, color = Color.Black)
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = {
@@ -659,7 +670,7 @@ fun InterestsSelector(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Thử lại")
+                            Text("Try again", fontFamily = deliusFontFamily)
                         }
                     }
                 }
@@ -670,7 +681,7 @@ fun InterestsSelector(
 
         // Selected interests chips
         if (selectedInterests.isNotEmpty()) {
-            Text("Đã chọn: ${selectedInterests.size}", fontSize = 14.sp, color = Color.Gray)
+            Text("Selected: ${selectedInterests.size}", fontSize = 14.sp, color = Color.Gray, fontFamily = deliusFontFamily)
             Spacer(Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -680,7 +691,7 @@ fun InterestsSelector(
                     FilterChip(
                         selected = true,
                         onClick = { onInterestsChange(selectedInterests - name) },
-                        label = { Text(name) },
+                        label = { Text(name, fontFamily = deliusFontFamily) },
                         trailingIcon = {
                             Icon(
                                 androidx.compose.material.icons.Icons.Default.Close,
