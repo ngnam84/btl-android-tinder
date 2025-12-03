@@ -345,7 +345,8 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                                 interests = interests,
                                 address = addressToSave,
                                 lat = latToSave,
-                                long = longToSave
+                                long = longToSave,
+                                ftsComplete = true
                             )
 
                             navigateTo(navController, DestinationScreen.Swipe.route)

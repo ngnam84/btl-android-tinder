@@ -125,7 +125,7 @@ class TCViewModel @Inject constructor(
                                 }
 
                                 firebaseUser.getIdToken(true).addOnSuccessListener {
-                                    createOrUpdateProfile(username = username)
+                                    createOrUpdateProfile(username = username, ftsComplete = false)
 
                                     // ✅ CONNECT STREAM NGAY SAU KHI SIGNUP
                                     connectToStream(firebaseUser.uid, username)
@@ -273,7 +273,8 @@ class TCViewModel @Inject constructor(
         interests: List<String>? = null,
         address: String? = null,
         lat: Double? = null,
-        long: Double? = null
+        long: Double? = null,
+        ftsComplete: Boolean? = null
     ) {
         val uid = auth.currentUser?.uid
         val userData = UserData(
@@ -287,7 +288,8 @@ class TCViewModel @Inject constructor(
             interests = interests ?: userData.value?.interests ?: listOf(),
             address = address, // Use the new address
             lat = lat,         // Use the new latitude
-            long = long         // Use the new longitude
+            long = long,         // Use the new longitude
+            ftsComplete = ftsComplete ?: userData.value?.ftsComplete ?: false
         )
 
         uid?.let {
@@ -361,7 +363,8 @@ class TCViewModel @Inject constructor(
         interests: List<String>,
         address: String?,
         lat: Double?,
-        long: Double?
+        long: Double?,
+        ftsComplete: Boolean
     ) {
         var finalLat = lat
         var finalLong = long
@@ -397,7 +400,8 @@ class TCViewModel @Inject constructor(
             interests = interests,
             address = finalAddress,
             lat = finalLat,
-            long = finalLong
+            long = finalLong,
+            ftsComplete = ftsComplete
         )
     }
 

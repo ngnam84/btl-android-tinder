@@ -16,7 +16,8 @@ data class UserData(
     var interests: List<String> = listOf(),
     var address: String? = "",
     var lat: Double? = 0.0,
-    var long: Double? = 0.0
+    var long: Double? = 0.0,
+    var ftsComplete: Boolean = false
 ) {
     fun toMap() = mapOf(
         "userId" to userId,
@@ -32,7 +33,8 @@ data class UserData(
         "interests" to interests,
         "address" to address,
         "lat" to lat,
-        "long" to long
+        "long" to long,
+        "ftsComplete" to ftsComplete
     )
 }
 
