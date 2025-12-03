@@ -1,9 +1,12 @@
 package com.btl.tinder
 
 import android.net.Uri
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.btl.tinder.data.*
 import com.btl.tinder.ui.Gender
@@ -25,6 +28,16 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.client.call.body // Added import
+import io.ktor.client.statement.bodyAsText
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
@@ -64,6 +77,17 @@ class TCViewModel @Inject constructor(
     val allInterests = _allInterests.asStateFlow()
     private val _interestsLoaded = MutableStateFlow(false)
     val interestsLoaded = _interestsLoaded.asStateFlow()
+
+    private val httpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json(Json {
+                prettyPrint = true
+                isLenient = true
+                ignoreUnknownKeys = true
+            })
+        }
+    }
+
 
     init {
         val currentUser = auth.currentUser
@@ -158,7 +182,6 @@ class TCViewModel @Inject constructor(
                             handleException(it, "Could not refresh Firebase token")
                             inProgress.value = false
                         }
-
                 } else {
                     handleException(task.exception, "Login failed")
                     inProgress.value = false
@@ -329,7 +352,7 @@ class TCViewModel @Inject constructor(
         popupNotification.value = Event("Logged out")
     }
 
-    fun updateProfileData(
+    suspend fun updateProfileData( // Make it a suspend function
         name: String,
         username: String,
         bio: String,
@@ -340,6 +363,31 @@ class TCViewModel @Inject constructor(
         lat: Double?,
         long: Double?
     ) {
+        var finalLat = lat
+        var finalLong = long
+        var finalAddress = address
+
+        // If lat and long are null, but an address is provided, try to geocode it
+        if (finalLat == null && finalLong == null && !address.isNullOrBlank()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val geoCodedCoords = getLatLongFromAddress(address)
+                if (geoCodedCoords != null) {
+                    finalLat = geoCodedCoords.first
+                    finalLong = geoCodedCoords.second
+                } else {
+                    // If geocoding fails, clear the address to prevent saving an invalid one
+                    // or you might want to show an error to the user
+                    Log.e("TCViewModel", "Geocoding failed for address: $address")
+                    popupNotification.value = Event("Could not find location for the entered city. Please try again with a more specific address or select from suggestions.")
+                    finalAddress = null
+                }
+            } else {
+                Log.w("TCViewModel", "Geoapify API call requires Android O (API 26) or higher.")
+                popupNotification.value = Event("Location services require a newer Android version.")
+                finalAddress = null
+            }
+        }
+
         createOrUpdateProfile(
             name = name,
             username = username,
@@ -347,9 +395,9 @@ class TCViewModel @Inject constructor(
             gender = gender,
             genderPreference = genderPreference,
             interests = interests,
-            address = address,
-            lat = lat,
-            long = long
+            address = finalAddress,
+            lat = finalLat,
+            long = finalLong
         )
     }
 
@@ -438,7 +486,7 @@ class TCViewModel @Inject constructor(
             distanceScore = if (distance > MAX_DISTANCE_KM) {
                 0.0
             } else {
-                1.0 - (distance / MAX_DISTANCE_KM)
+                1.0 - (distance / MAX_DISTANCE_KM) - 0.5
             }
         }
 
@@ -539,7 +587,7 @@ class TCViewModel @Inject constructor(
 
         if (reciprocalMatch) {
             // ✅ MATCH! Cả 2 đều thích nhau
-            popupNotification.value = Event("It's a Match! 💕")
+            popupNotification.value = Event("It\'s a Match! 💕")
 
             // 1. Xóa swipesRight của người kia
             db.collection(COLLECTION_USER).document(selectedUserId)
@@ -634,7 +682,7 @@ class TCViewModel @Inject constructor(
             return
         }
         // Firestore does not support case-insensitive startsWith, so we query for a range
-        // This finds cities where the 'city' field is >= query and < query + '\uf8ff'
+        // This finds cities where the \'city\' field is >= query and < query + \'\'
         // This effectively works as a prefix search.
         db.collection("cities")
             .orderBy("city")
@@ -696,6 +744,34 @@ class TCViewModel @Inject constructor(
                 Log.e("TCViewModel", "Error adding interest", e)
                 handleException(e, "Could not add interest")
             }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun getLatLongFromAddress(address: String): Pair<Double, Double>? {
+        val apiKey = "eedd1bc6f483429793b03110c4f4e9ce" // <<< THAY THẾ BẰNG KHÓA API CỦA BẠN
+        val url = "https://api.geoapify.com/v1/geocode/search?text=$address&apiKey=$apiKey"
+
+        return try {
+            val response = httpClient.get(url)
+            if (response.status.value == 200) {
+                val geoapifyResponse = response.body<GeoapifyResponse>() // Changed here
+                val feature = geoapifyResponse.features.firstOrNull()
+                if (feature != null) {
+                    Pair(feature.properties.lat, feature.properties.lon)
+                } else {
+                    Log.e("Geoapify", "No features found for address: $address")
+                    null
+                }
+            } else {
+                Log.e("Geoapify", "API call failed with status: ${response.status.value}")
+                Log.e("Geoapify", "Response body: ${response.bodyAsText()}")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("Geoapify", "Error getting lat/long from Geoapify: ${e.message}", e)
+            handleException(e, "Error getting location data")
+            null
+        }
     }
 
 }

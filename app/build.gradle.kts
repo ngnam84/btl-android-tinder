@@ -6,6 +6,7 @@ plugins {
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -47,13 +48,6 @@ android {
 }
 
 dependencies {
-
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)
-    implementation(libs.androidx.foundation.layout)
-    implementation(libs.firebase.functions.ktx.v2121)
-    implementation(libs.androidx.compose.ui.graphics)
 
     // --- Compose BOM ---
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
@@ -147,5 +141,24 @@ dependencies {
     implementation(libs.foundation)
     implementation(libs.toasty)
     implementation(libs.animated.navigation.bar)
+
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.firebase.functions.ktx.v2121)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.firebase.crashlytics.buildtools)
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    // implementation("io.ktor:ktor-client-cio:2.3.7")
+
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.content.negotiation)
+
+    implementation(libs.ktor.client.logging)
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
 }

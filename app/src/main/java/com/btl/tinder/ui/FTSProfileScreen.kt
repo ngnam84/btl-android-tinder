@@ -19,7 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.* 
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +72,10 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
     var gender by rememberSaveable { mutableStateOf(Gender.MALE) }
     var genderPreference by rememberSaveable { mutableStateOf(Gender.FEMALE) }
     var selectedCity by remember { mutableStateOf<CityData?>(null) }
+    var cityInput by rememberSaveable { mutableStateOf("") } // Added cityInput state
     var interests by rememberSaveable { mutableStateOf(listOf<String>()) }
+
+    val coroutineScope = rememberCoroutineScope() // Obtain a CoroutineScope
 
 
     Box(
@@ -156,7 +159,12 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                 // --- Autocomplete City Search Bar ---
                 CityAutocompleteTextField(
                     vm = vm,
-                    onCitySelected = { selectedCity = it } // Corrected logic to update the correct state variable
+                    onCitySelected = {
+                        selectedCity = it
+                        cityInput = it?.city ?: "" // Update cityInput when a suggestion is selected
+                    },
+                    onCityInputChanged = { cityInput = it }, // Update cityInput on text change
+                    cityInputValue = cityInput // Pass cityInput to the composable
                 )
 
                 Spacer(modifier = Modifier.height(8.dp).background(Color(0xFFFF768B)))
@@ -323,18 +331,25 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                         vm.popupNotification.value =
                             Event("Please fill all fields and upload a profile picture.")
                     } else {
-                        vm.updateProfileData(
-                            name = name,
-                            username = vm.userData.value?.username ?: "",
-                            bio = bio,
-                            gender = gender,
-                            genderPreference = genderPreference,
-                            interests = interests,
-                            address = selectedCity?.city,
-                            lat = selectedCity?.lat,
-                            long = selectedCity?.lng
-                        )
-                        navigateTo(navController, DestinationScreen.Swipe.route)
+                        coroutineScope.launch { // Launch a coroutine here
+                            val addressToSave = selectedCity?.city ?: cityInput.ifBlank { null }
+                            val latToSave = selectedCity?.lat
+                            val longToSave = selectedCity?.lng
+
+                            vm.updateProfileData(
+                                name = name,
+                                username = vm.userData.value?.username ?: "",
+                                bio = bio,
+                                gender = gender,
+                                genderPreference = genderPreference,
+                                interests = interests,
+                                address = addressToSave,
+                                lat = latToSave,
+                                long = longToSave
+                            )
+
+                            navigateTo(navController, DestinationScreen.Swipe.route)
+                        }
                     }
                 }
             ) {
@@ -413,37 +428,42 @@ fun ProfileImage1(imageUrl : String?,vm: TCViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CityAutocompleteTextField(vm: TCViewModel, onCitySelected: (CityData?) -> Unit) {
+fun CityAutocompleteTextField(
+    vm: TCViewModel,
+    onCitySelected: (CityData?) -> Unit,
+    onCityInputChanged: (String) -> Unit, // New callback for text input changes
+    cityInputValue: String // New parameter for controlling the text field's value
+) {
     val allCities by vm.cities.collectAsState()
-    var text by remember { mutableStateOf("") }
+    // var text by remember { mutableStateOf("") } // Removed local text state
     var expanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     // Case-insensitive filtering
-    val cities = remember(text, allCities) {
-        if (text.isBlank()) emptyList()
+    val cities = remember(cityInputValue, allCities) { // Use cityInputValue for filtering
+        if (cityInputValue.isBlank()) emptyList()
         else allCities.filter {
-            it.city?.lowercase()?.contains(text.lowercase()) == true
+            it.city?.lowercase()?.contains(cityInputValue.lowercase()) == true
         }
     }
 
-    LaunchedEffect(text) {
-        vm.searchCities(text)
+    LaunchedEffect(cityInputValue) { // Use cityInputValue for LaunchedEffect
+        vm.searchCities(cityInputValue)
     }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().menuAnchor().onFocusChanged {
-                if (!it.isFocused) {
-                    if (cities.none { cityData -> cityData.city.equals(text, ignoreCase = true) }) {
-                        text = ""
-                        onCitySelected(null)
-                    }
+                // Removed the logic that clears text if no suggestion is selected
+                if (!it.isFocused && !expanded) { // Close dropdown when focus is lost and not expanded
+                    // If the text field loses focus and no item was selected,
+                    // we want to keep the user's input.
+                    // The TCViewModel will handle geocoding for this input if no CityData was selected.
                 }
             },
-            value = text,
+            value = cityInputValue, // Use cityInputValue as the value
             onValueChange = {
-                text = it
+                onCityInputChanged(it) // Call the new callback
                 expanded = it.isNotEmpty()
             },
             label = { Text("City", fontFamily = deliusFontFamily, color = Color.Black) },
@@ -461,7 +481,7 @@ fun CityAutocompleteTextField(vm: TCViewModel, onCitySelected: (CityData?) -> Un
                         text = { Text("${cityData.city}, ${cityData.country}", fontFamily = deliusFontFamily) },
                         onClick = {
                             onCitySelected(cityData)
-                            text = cityData.city ?: ""
+                            // text = cityData.city ?: "" // Removed local text update
                             expanded = false
                             focusManager.clearFocus()
                         }
@@ -471,5 +491,3 @@ fun CityAutocompleteTextField(vm: TCViewModel, onCitySelected: (CityData?) -> Un
         }
     }
 }
-
-
