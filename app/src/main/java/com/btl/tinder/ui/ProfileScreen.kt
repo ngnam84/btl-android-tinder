@@ -19,9 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.OutlinedButton
 import androidx.navigation.NavController
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.btl.tinder.CommonProgressSpinner
 import com.btl.tinder.TCViewModel
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +77,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.btl.tinder.data.CityData
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+
 
 enum class Gender {
     MALE, FEMALE, ANY
@@ -88,6 +95,7 @@ enum class Gender {
 @Composable
 fun ProfileScreen(navController: NavController, vm: TCViewModel) {
     val inProgress = vm.inProgress.value
+    val scope = rememberCoroutineScope()
 
     if (inProgress)
         CommonProgressSpinner()
@@ -97,16 +105,18 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         else userData.gender!!.uppercase()
         val gpreper = if(userData?.genderPreference.isNullOrEmpty()) "FEMALE"
         else userData.genderPreference!!.uppercase()
+
         var name by rememberSaveable { mutableStateOf(userData?.name ?: "") }
         var username by rememberSaveable { mutableStateOf(userData?.username ?: "") }
         var bio by rememberSaveable { mutableStateOf(userData?.bio ?: "") }
-        var gender by rememberSaveable {
-            mutableStateOf(Gender.valueOf(g))
-        }
-        var genderPreference by rememberSaveable {
-            mutableStateOf(Gender.valueOf(gpreper))
-        }
+        var gender by rememberSaveable { mutableStateOf(Gender.valueOf(g)) }
+        var genderPreference by rememberSaveable { mutableStateOf(Gender.valueOf(gpreper)) }
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
+
+        // State for address, adapted from FTSProfileScreen
+        var selectedCity by remember { mutableStateOf<CityData?>(null) }
+        var cityInput by rememberSaveable { mutableStateOf(userData?.address ?: "") }
+
 
         Column(modifier = Modifier
             .background(Color.White)
@@ -123,15 +133,36 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
                 gender = gender,
                 genderPreference = genderPreference,
                 interests = interests,
+                cityInput = cityInput,
                 onNameChange = {name = it},
                 onUsernameChange = {username = it},
                 onBioChange = { bio = it},
                 onGenderChange = {gender = it},
                 onGenderPreferenceChange = {genderPreference=it},
                 onInterestsChange = {interests = it},
+                onCityInputChanged = { cityInput = it },
+                onCitySelected = {
+                    selectedCity = it
+                    cityInput = it?.city ?: ""
+                },
                 onSave = {
-                    //vm.updateProfileData(name,username,bio,gender,genderPreference,interests)
-                    //vm.updateProfileData(name,username,bio,gender,genderPreference)
+                    scope.launch {
+                        val addressToSave = selectedCity?.city ?: cityInput.ifBlank { null }
+                        val latToSave = selectedCity?.lat
+                        val longToSave = selectedCity?.lng
+
+                        vm.updateProfileData(
+                            name = name,
+                            username = username,
+                            bio = bio,
+                            gender = gender,
+                            genderPreference = genderPreference,
+                            interests = interests,
+                            address = addressToSave,
+                            lat = latToSave,
+                            long = longToSave
+                        )
+                    }
                 },
                 onBack = { navigateTo(navController, DestinationScreen.Swipe.route) },
                 onLogout = {
@@ -151,19 +182,21 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
 fun ProfileContent(
     modifier:Modifier,
     vm: TCViewModel,
-
     name: String,
     username: String,
     bio: String,
     gender: Gender,
     genderPreference: Gender,
     interests: List<String>,
+    cityInput: String,
     onNameChange:(String) -> Unit,
     onUsernameChange:(String) -> Unit,
     onBioChange:(String) -> Unit,
     onGenderChange:(Gender) -> Unit,
     onGenderPreferenceChange:(Gender) -> Unit,
     onInterestsChange:(List<String>) -> Unit,
+    onCityInputChanged: (String) -> Unit,
+    onCitySelected: (CityData?) -> Unit,
     onSave: () -> Unit,
     onBack :() -> Unit,
     onLogout : () -> Unit
@@ -307,6 +340,17 @@ fun ProfileContent(
         }
 
         CommonDivider()
+
+        // --- Autocomplete City Search Bar from FTSProfileScreen ---
+        CityAutocompleteTextField(
+            vm = vm,
+            onCitySelected = onCitySelected,
+            onCityInputChanged = onCityInputChanged,
+            cityInputValue = cityInput
+        )
+
+
+        CommonDivider()
         InterestsSelector(
             selectedInterests = interests,
             onInterestsChange = onInterestsChange
@@ -353,6 +397,68 @@ fun ProfileContent(
         }
     }
 }
+
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun CityAutocompleteTextField(
+//    vm: TCViewModel,
+//    onCitySelected: (CityData?) -> Unit,
+//    onCityInputChanged: (String) -> Unit,
+//    cityInputValue: String
+//) {
+//    val allCities by vm.cities.collectAsState()
+//    var expanded by remember { mutableStateOf(false) }
+//    val focusManager = LocalFocusManager.current
+//
+//    val cities = remember(cityInputValue, allCities) {
+//        if (cityInputValue.isBlank()) emptyList()
+//        else allCities.filter {
+//            it.city?.lowercase()?.contains(cityInputValue.lowercase()) == true
+//        }
+//    }
+//
+//    LaunchedEffect(cityInputValue) {
+//        vm.searchCities(cityInputValue)
+//    }
+//
+//    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+//        OutlinedTextField(
+//            modifier = Modifier.fillMaxWidth().menuAnchor().onFocusChanged {
+//                if (!it.isFocused && !expanded) {
+//                    // Logic to handle focus loss if needed
+//                }
+//            },
+//            value = cityInputValue,
+//            onValueChange = {
+//                onCityInputChanged(it)
+//                expanded = it.isNotEmpty()
+//            },
+//            label = { Text("City", fontFamily = deliusFontFamily, color = Color.Black) },
+//            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+//            colors = OutlinedTextFieldDefaults.colors(
+//                focusedBorderColor = Color.Black, unfocusedBorderColor = Color.Black, cursorColor = Color.Black,
+//                focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Gray,
+//                unfocusedTextColor = Color.Black, focusedTextColor = Color.Black
+//            )
+//        )
+//
+//        if (cities.isNotEmpty()) {
+//            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+//                cities.forEach { cityData ->
+//                    DropdownMenuItem(
+//                        text = { Text("${cityData.city}, ${cityData.country}", fontFamily = deliusFontFamily) },
+//                        onClick = {
+//                            onCitySelected(cityData)
+//                            expanded = false
+//                            focusManager.clearFocus()
+//                        }
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
+
 
 @Composable
 fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
@@ -426,8 +532,7 @@ fun InterestsSelector(
     selectedInterests: List<String>,
     onInterestsChange: (List<String>) -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val viewModel: TCViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val viewModel: TCViewModel = hiltViewModel()
 
     val allInterests by viewModel.allInterests.collectAsState()
     val interestsLoaded by viewModel.interestsLoaded.collectAsState()
@@ -550,12 +655,12 @@ fun InterestsSelector(
                             Icon(
                                 androidx.compose.material.icons.Icons.Default.Add,
                                 null,
-                                tint = Color(0xFFFF7898)
+                                tint = Color(0xFFFF789B)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 "Add \"$searchQuery\"",
-                                color = Color(0xFFFF7898),
+                                color = Color(0xFFFF789B),
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = deliusFontFamily
                             )
@@ -579,7 +684,7 @@ fun InterestsSelector(
                             typo.suggested.name,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFF7898),
+                            color = Color(0xFFFF789B),
                             fontFamily = deliusFontFamily
                         )
                         Spacer(Modifier.height(8.dp))
@@ -593,7 +698,7 @@ fun InterestsSelector(
                                     searchQuery = ""
                                     validationResult = null
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7898))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF789B))
                             ) {
                                 Text("Yes, that's it", fontFamily = deliusFontFamily)
                             }
