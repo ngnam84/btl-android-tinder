@@ -152,7 +152,8 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
                             interests = interests,
                             address = addressToSave,
                             lat = latToSave,
-                            long = longToSave
+                            long = longToSave,
+                            ftsComplete = true
                         )
                     }
                 },
@@ -168,7 +169,7 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
 
 @Composable
 fun ProfileContent(
-    modifier:Modifier,
+    modifier: Modifier,
     vm: TCViewModel,
     name: String,
     username: String,

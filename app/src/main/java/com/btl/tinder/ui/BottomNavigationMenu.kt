@@ -62,12 +62,13 @@ enum class BottomNavigationItem(val icon: Int, val navDestination: DestinationSc
 @Composable
 fun BottomNavigationMenu(
     selectedItem: BottomNavigationItem,
-    navController: NavController
+    navController: NavController,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 70.dp)
             .padding(horizontal = 16.dp)
@@ -198,6 +199,3 @@ fun BottomNavigationMenu1(
         }
     }
 }
-
-
-
