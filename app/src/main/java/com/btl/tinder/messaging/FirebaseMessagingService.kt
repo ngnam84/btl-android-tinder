@@ -19,7 +19,7 @@ import io.getstream.chat.android.models.PushProvider
 class TCFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
-        private const val TAG = "TCFCMService"
+        private const val MessageReceive = "TCFCMService"
         private const val NOTIFICATION_CHANNEL_ID = "stream_chat_notifications"
         private const val NOTIFICATION_CHANNEL_NAME = "Chat Messages"
     }
@@ -31,7 +31,7 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d(TAG, "New FCM token: $token")
+        Log.d(MessageReceive, "New FCM token: $token")
 
         try {
             val chatClient = ChatClient.instance()
@@ -39,41 +39,59 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
                 val device = Device(
                     token = token,
                     pushProvider = PushProvider.FIREBASE,
-                    providerName = "firebase"
+                    providerName = "firebase_push"
                 )
 
                 chatClient.addDevice(device).enqueue { result ->
                     if (result.isSuccess) {
-                        Log.d(TAG, "✅ Device token registered successfully")
+                        Log.d(MessageReceive, "✅ Device token registered successfully")
                     } else {
-                        Log.e(TAG, "❌ Failed to register token: ${result.errorOrNull()?.message}")
+                        Log.e(MessageReceive, "❌ Failed to register token: ${result.errorOrNull()?.message}")
                     }
                 }
             } else {
-                Log.w(TAG, "User not connected yet, token will be registered after connection")
+                Log.w(MessageReceive, "User not connected yet, token will be registered after connection")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering token", e)
+            Log.e(MessageReceive, "Error registering token", e)
         }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        Log.d(TAG, "Message received from: ${message.from}")
+        Log.d(MessageReceive, "--- NEW FCM MESSAGE RECEIVED ---")
+        Log.d(MessageReceive, "From: ${message.from}")
 
+        // ✅ Log the data payload
+        if (message.data.isNotEmpty()) {
+            Log.d(MessageReceive, "Data Payload: ${message.data}")
+        } else {
+            Log.d(MessageReceive, "Data Payload: EMPTY")
+        }
+
+        // ✅ Log the notification payload
+        message.notification?.let {
+            Log.d(MessageReceive, "Notification Payload: title='${it.title}', body='${it.body}'")
+        } ?: run {
+            Log.d(MessageReceive, "Notification Payload: EMPTY")
+        }
+
+        // --- Original Logic ---
         try {
             val isStreamNotification = message.data.containsKey("channel_id")
 
             if (isStreamNotification) {
-                Log.d(TAG, "Stream notification detected")
+                Log.d(MessageReceive, "Stream notification detected, handling it...")
                 handleStreamNotification(message)
             } else {
-                Log.d(TAG, "Non-stream notification")
+                Log.d(MessageReceive, "This is not a Stream notification.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error handling notification", e)
+            Log.e(MessageReceive, "Error handling notification", e)
         }
+        Log.d(MessageReceive, "--- FCM MESSAGE PROCESSING FINISHED ---")
     }
+
 
     private fun handleStreamNotification(message: RemoteMessage) {
         val channelId = message.data["channel_id"] ?: return
@@ -81,7 +99,7 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
         val senderName = message.data["sender_name"] ?: "Someone"
         val senderImage = message.data["sender_image"]
 
-        Log.d(TAG, "Channel: $channelId, From: $senderName, Message: $messageText")
+        Log.d(MessageReceive, "Channel: $channelId, From: $senderName, Message: $messageText")
 
         showNotification(
             channelId = channelId,

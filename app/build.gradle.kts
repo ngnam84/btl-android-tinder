@@ -61,10 +61,11 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.foundation.layout)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.ui.test.junit4)
-
 
     // --- Android core ---
     implementation(libs.androidx.core.ktx)
@@ -81,88 +82,49 @@ dependencies {
     kapt(libs.dagger.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-
     // --- Firebase ---
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
-    implementation("com.google.firebase:firebase-analytics:23.0.0")
-    implementation ("com.google.firebase:firebase-appcheck-debug")
-
-
-
-    // --- Accompanist ---
-    implementation(libs.accompanist.systemuicontroller)
-
-    // --- Coil (Image Loading) ---
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
-
-    // --- Coroutines ---
-    implementation(libs.kotlinx.coroutines.android)
-
-    // --- Testing ---
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
-    // --- exyte AndroidAnimatedNavigationBar ---
-    implementation(libs.animated.navigation.bar)
-
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.foundation)
+    implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
-    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.functions.ktx.v2121) 
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.appcheck.debug)
+    implementation(libs.firebase.crashlytics.buildtools)
 
-    implementation(libs.toasty)
-
-    //--- Stream Chat ---
+    //--- Stream Chat & Video ---
     implementation(libs.stream.chat.android.client)
     implementation(libs.stream.chat.android.state)
     implementation(libs.stream.chat.android.offline.v6270)
     implementation(libs.stream.chat.android.ui.components)
-    // Stream Chat Compose UI
     implementation(libs.stream.chat.android.compose)
-
-
-
-    
-    // --- Stream Video ---
     implementation(libs.stream.video.android.ui.compose)
-
 
     // --- Credentials / Google Sign-In ---
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
-    // --- Utility / UI ---
-    implementation(libs.foundation)
-    implementation(libs.toasty)
-    implementation(libs.animated.navigation.bar)
-
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)
-    implementation(libs.androidx.foundation.layout)
-    implementation(libs.firebase.functions.ktx.v2121)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.firebase.crashlytics.buildtools)
-
+    // --- Networking (Ktor) ---
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
-    // implementation("io.ktor:ktor-client-cio:2.3.7")
-
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.content.negotiation)
-
     implementation(libs.ktor.client.logging)
+    implementation(libs.kotlinx.serialization.json)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // --- Other UI & Utility ---
+    implementation(libs.accompanist.systemuicontroller)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.animated.navigation.bar)
+    implementation(libs.toasty)
 
-    // Firebase Messaging cho Push Notifications
-    implementation("com.google.firebase:firebase-messaging:23.4.0")
-
-
+    // --- Testing ---
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }
