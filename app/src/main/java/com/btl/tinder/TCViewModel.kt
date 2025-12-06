@@ -10,12 +10,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.btl.tinder.data.*
 import com.btl.tinder.ui.Gender
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.chat.android.client.ChatClient
@@ -33,18 +35,19 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
-import io.ktor.client.call.body // Added import
+import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import io.getstream.chat.android.models.Device
+import io.getstream.chat.android.models.PushProvider
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
     SIGNED_IN_FROM_SIGNUP,
     SIGNED_OUT
 }
-
 
 data class UserMatch(
     val user: UserData,
@@ -61,14 +64,12 @@ class TCViewModel @Inject constructor(
 
     val inProgress = mutableStateOf(false)
     val popupNotification = mutableStateOf<Event<String>?>(null)
-    //val signedIn = mutableStateOf(false)
     val signInState = mutableStateOf(SignInState.SIGNED_OUT)
     val userData = mutableStateOf<UserData?>(null)
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
 
-    // --- City Search State ---
     private val _cities = MutableStateFlow<List<CityData>>(emptyList())
     val cities = _cities.asStateFlow()
     private var searchJob: Job? = null
@@ -88,10 +89,8 @@ class TCViewModel @Inject constructor(
         }
     }
 
-
     init {
         val currentUser = auth.currentUser
-        // If a user is already logged in, treat it as a normal login flow
         if (currentUser != null) {
             signInState.value = SignInState.SIGNED_IN_FROM_LOGIN
             currentUser.uid.let { uid ->
@@ -126,10 +125,7 @@ class TCViewModel @Inject constructor(
 
                                 firebaseUser.getIdToken(true).addOnSuccessListener {
                                     createOrUpdateProfile(username = username, ftsComplete = false)
-
-                                    // ✅ CONNECT STREAM NGAY SAU KHI SIGNUP
                                     connectToStream(firebaseUser.uid, username)
-
                                     signInState.value = SignInState.SIGNED_IN_FROM_SIGNUP
                                     navController.navigate(DestinationScreen.Login.route)
                                 }.addOnFailureListener {
@@ -172,10 +168,7 @@ class TCViewModel @Inject constructor(
                         .addOnSuccessListener {
                             signInState.value = SignInState.SIGNED_IN_FROM_LOGIN
                             getUserData(firebaseUser.uid)
-
-                            // ✅ CONNECT STREAM NGAY SAU KHI LOGIN
                             connectToStream(firebaseUser.uid)
-
                             inProgress.value = false
                         }
                         .addOnFailureListener {
@@ -194,7 +187,6 @@ class TCViewModel @Inject constructor(
     }
 
     private fun connectToStream(userId: String, username: String? = null) {
-        // Kiểm tra xem đã connect chưa
         val currentUser = chatClient.clientState.user.value
         if (currentUser != null && currentUser.id == userId) {
             Log.d("TCViewModel", "✅ Already connected to Stream")
@@ -213,9 +205,49 @@ class TCViewModel @Inject constructor(
             chatClient.connectUser(user, streamToken).enqueue { result ->
                 if (result.isSuccess) {
                     Log.d("TCViewModel", "✅ Connected to Stream successfully!")
+                    // ✅ Đăng ký FCM token sau khi connect thành công
+                    registerFCMToken()
                 } else {
                     Log.e("TCViewModel", "❌ Stream connect failed: ${result.errorOrNull()?.message}")
+                }
+            }
+        }
+    }
 
+    private fun registerFCMToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.e("TCViewModel", "❌ Failed to get FCM token", task.exception)
+                return@addOnCompleteListener
+            }
+
+            val token = task.result ?: ""
+            if (token.isEmpty()) {
+                Log.e("TCViewModel", "❌ FCM token is empty")
+                return@addOnCompleteListener
+            }
+
+            Log.d("TCViewModel", "✅ FCM Token: $token")
+
+            // ✅ Kiểm tra user đã connect chưa
+            val currentUser = chatClient.clientState.user.value
+            if (currentUser == null) {
+                Log.w("TCViewModel", "User not connected yet, token will be registered after connection")
+                return@addOnCompleteListener
+            }
+
+            // ✅ SỬA: Tạo Device object
+            val device = io.getstream.chat.android.models.Device(
+                token = token,
+                pushProvider = io.getstream.chat.android.models.PushProvider.FIREBASE,
+                providerName = "firebase_push"
+            )
+
+            chatClient.addDevice(device).enqueue { result ->
+                if (result.isSuccess) {
+                    Log.d("TCViewModel", "✅ FCM token registered with Stream")
+                } else {
+                    Log.e("TCViewModel", "❌ Failed to register FCM token: ${result.errorOrNull()?.message}")
                 }
             }
         }
@@ -260,7 +292,6 @@ class TCViewModel @Inject constructor(
             }
     }
 
-
     // ---------------------- USER DATA & PROFILE ----------------------
 
     private fun createOrUpdateProfile(
@@ -286,9 +317,9 @@ class TCViewModel @Inject constructor(
             gender = gender?.toString() ?: userData.value?.gender,
             genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference,
             interests = interests ?: userData.value?.interests ?: listOf(),
-            address = address, // Use the new address
-            lat = lat,         // Use the new latitude
-            long = long,         // Use the new longitude
+            address = address,
+            lat = lat,
+            long = long,
             ftsComplete = ftsComplete ?: userData.value?.ftsComplete ?: false
         )
 
@@ -336,7 +367,6 @@ class TCViewModel @Inject constructor(
                     Log.d("TCViewModel", "User data loaded: ${userData.value}")
                     populateCards()
 
-                    // ✅ Connect Stream sau khi có userData (cho trường hợp app restart)
                     if (user != null) {
                         connectToStream(uid)
                     }
@@ -344,17 +374,42 @@ class TCViewModel @Inject constructor(
             }
     }
 
-    // ---------------------- OTHER LOGIC ----------------------
+    // ---------------------- LOGOUT ----------------------
 
     fun onLogout() {
-        chatClient.disconnect(flushPersistence = true)
+        // ✅ XÓA TẤT CẢ DEVICE TOKENS KHI LOGOUT
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                // ✅ SỬA: deleteDevice cần object Device, không phải String
+                // Giải pháp: Lấy danh sách devices và xóa tất cả
+                chatClient.getDevices().enqueue { devicesResult ->
+                    if (devicesResult.isSuccess) {
+                        val devices = devicesResult.getOrNull()
+                        devices?.forEach { device ->
+                            chatClient.deleteDevice(device).enqueue { result ->
+                                if (result.isSuccess) {
+                                    Log.d("TCViewModel", "✅ Device token removed")
+                                } else {
+                                    Log.e("TCViewModel", "❌ Failed to remove device: ${result.errorOrNull()?.message}")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        chatClient.disconnect(flushPersistence = true).enqueue()
         auth.signOut()
         signInState.value = SignInState.SIGNED_OUT
         userData.value = null
         popupNotification.value = Event("Logged out")
     }
 
-    suspend fun updateProfileData( // Make it a suspend function
+    // ---------------------- OTHER LOGIC ----------------------
+
+    suspend fun updateProfileData(
         name: String,
         username: String,
         bio: String,
@@ -370,7 +425,6 @@ class TCViewModel @Inject constructor(
         var finalLong = long
         var finalAddress = address
 
-        // If lat and long are null, but an address is provided, try to geocode it
         if (finalLat == null && finalLong == null && !address.isNullOrBlank()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val geoCodedCoords = getLatLongFromAddress(address)
@@ -378,8 +432,6 @@ class TCViewModel @Inject constructor(
                     finalLat = geoCodedCoords.first
                     finalLong = geoCodedCoords.second
                 } else {
-                    // If geocoding fails, clear the address to prevent saving an invalid one
-                    // or you might want to show an error to the user
                     Log.e("TCViewModel", "Geocoding failed for address: $address")
                     popupNotification.value = Event("Could not find location for the entered city. Please try again with a more specific address or select from suggestions.")
                     finalAddress = null
@@ -447,6 +499,7 @@ class TCViewModel @Inject constructor(
 
         return intersection.size.toDouble() / union.size.toDouble()
     }
+
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val earthRadiusKm = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
@@ -466,17 +519,13 @@ class TCViewModel @Inject constructor(
         val DISTANCE_WEIGHT = 0.3
         val MAX_DISTANCE_KM = 100.0
 
-        // 1. Tính điểm Interest
         val interestScore = calculateJaccardSimilarity(
             currentUser.interests ?: listOf(),
             potential.interests ?: listOf()
         )
 
-        // 2. Tính điểm Distance
         var distanceScore = 0.0
 
-        // ✅ LẤY GIÁ TRỊ AN TOÀN BẰNG CÁCH ÉP KIỂU .toDouble()
-        // Dùng safe call (?.) vì lat/long có thể null
         val lat1 = currentUser.lat?.toDouble()
         val lon1 = currentUser.long?.toDouble()
         val lat2 = potential.lat?.toDouble()
@@ -484,9 +533,7 @@ class TCViewModel @Inject constructor(
 
         if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
             val distance = calculateDistance(lat1, lon1, lat2, lon2)
-
             Log.d("MatchCalc", "Khoảng cách tới ${potential.name}: $distance km")
-
             distanceScore = if (distance > MAX_DISTANCE_KM) {
                 0.0
             } else {
@@ -494,7 +541,6 @@ class TCViewModel @Inject constructor(
             }
         }
 
-        // 3. Tổng điểm
         return (INTEREST_WEIGHT * interestScore) + (DISTANCE_WEIGHT * distanceScore)
     }
 
@@ -541,7 +587,7 @@ class TCViewModel @Inject constructor(
                     Log.d("TCViewModel", "Fetched ${value.documents.size} documents from Firestore.")
                     val potentials = mutableListOf<UserData>()
                     value.documents.forEach {
-                        it.toObject<UserData>()?.let {potential ->
+                        it.toObject<UserData>()?.let { potential ->
                             var showUser = true
                             Log.d("TCViewModel", "Processing potential user: ${potential.userId}, Name: ${potential.name}")
                             if (
@@ -586,29 +632,23 @@ class TCViewModel @Inject constructor(
             return
         }
 
-        // Kiểm tra xem người kia đã swipe right mình chưa
         val reciprocalMatch = selectedUser.swipesRight?.contains(currentUserId) == true
 
         if (reciprocalMatch) {
-            // ✅ MATCH! Cả 2 đều thích nhau
-            popupNotification.value = Event("It\'s a Match! 💕")
+            popupNotification.value = Event("It's a Match! 💕")
 
-            // 1. Xóa swipesRight của người kia
             db.collection(COLLECTION_USER).document(selectedUserId)
                 .update("swipesRight", FieldValue.arrayRemove(currentUserId))
 
-            // 2. Thêm vào matches của cả 2 người
             db.collection(COLLECTION_USER).document(selectedUserId)
                 .update("matches", FieldValue.arrayUnion(currentUserId))
 
             db.collection(COLLECTION_USER).document(currentUserId)
                 .update("matches", FieldValue.arrayUnion(selectedUserId))
 
-            // 3. 🔥 TẠO CHANNEL STREAM CHAT thay vì Firebase chat room
             createStreamChatChannel(currentUserId, selectedUserId, selectedUser)
 
         } else {
-            // ❌ Chưa match - chỉ thêm vào swipesRight
             db.collection(COLLECTION_USER).document(currentUserId)
                 .update("swipesRight", FieldValue.arrayUnion(selectedUserId))
                 .addOnSuccessListener {
@@ -625,7 +665,6 @@ class TCViewModel @Inject constructor(
         matchedUserId: String,
         matchedUser: UserData
     ) {
-
         val connectionState = chatClient.clientState.connectionState.value
         Log.d("TCViewModel", "Stream connection state: $connectionState")
 
@@ -635,18 +674,15 @@ class TCViewModel @Inject constructor(
             return
         }
 
-
         val channelId = listOf(currentUserId, matchedUserId).sorted().joinToString("-")
 
         Log.d("TCViewModel", "Creating channel with ID: $channelId")
         Log.d("TCViewModel", "Members: $currentUserId, $matchedUserId")
 
-
         val channel = chatClient.channel(
             channelType = "messaging",
             channelId = channelId
         )
-
 
         channel.create(
             memberIds = listOf(currentUserId, matchedUserId),
@@ -656,7 +692,6 @@ class TCViewModel @Inject constructor(
         ).enqueue { result ->
             if (result.isSuccess) {
                 Log.d("TCViewModel", "✅ Stream channel created successfully: $channelId")
-
 
                 channel.sendMessage(
                     message = io.getstream.chat.android.models.Message(
@@ -685,14 +720,11 @@ class TCViewModel @Inject constructor(
             _cities.value = emptyList()
             return
         }
-        // Firestore does not support case-insensitive startsWith, so we query for a range
-        // This finds cities where the \'city\' field is >= query and < query + \'\'
-        // This effectively works as a prefix search.
         db.collection("cities")
             .orderBy("city")
             .startAt(query)
             .endAt(query + "\uf8ff")
-            .limit(10) // Limit results to avoid fetching too much data
+            .limit(10)
             .get()
             .addOnSuccessListener { documents ->
                 _cities.value = documents.mapNotNull { it.toObject<CityData>() }
@@ -752,13 +784,13 @@ class TCViewModel @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun getLatLongFromAddress(address: String): Pair<Double, Double>? {
-        val apiKey = "eedd1bc6f483429793b03110c4f4e9ce" // <<< THAY THẾ BẰNG KHÓA API CỦA BẠN
+        val apiKey = "eedd1bc6f483429793b03110c4f4e9ce"
         val url = "https://api.geoapify.com/v1/geocode/search?text=$address&apiKey=$apiKey"
 
         return try {
             val response = httpClient.get(url)
             if (response.status.value == 200) {
-                val geoapifyResponse = response.body<GeoapifyResponse>() // Changed here
+                val geoapifyResponse = response.body<GeoapifyResponse>()
                 val feature = geoapifyResponse.features.firstOrNull()
                 if (feature != null) {
                     Pair(feature.properties.lat, feature.properties.lon)
@@ -777,5 +809,4 @@ class TCViewModel @Inject constructor(
             null
         }
     }
-
 }

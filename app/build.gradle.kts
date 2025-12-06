@@ -161,4 +161,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // Firebase Messaging cho Push Notifications
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
+
+
 }
