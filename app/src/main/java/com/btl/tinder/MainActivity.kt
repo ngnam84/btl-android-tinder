@@ -1,5 +1,6 @@
 package com.btl.tinder
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,9 +14,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.btl.tinder.ui.*
 import com.btl.tinder.ui.AnimatedSplashScreen
 import com.btl.tinder.ui.ChatListScreen
 import com.btl.tinder.ui.CreatePostScreen
@@ -28,6 +31,8 @@ import com.btl.tinder.ui.SignupScreen
 import com.btl.tinder.ui.SwipeScreen
 import com.btl.tinder.ui.theme.TinderCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 sealed class DestinationScreen(val route: String) {
     object Splash : DestinationScreen("splash")
@@ -48,6 +53,10 @@ sealed class DestinationScreen(val route: String) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ✅ Xử lý notification intent
+        handleNotificationIntent(intent)
+
         setContent {
             TinderCloneTheme {
                 Surface(
@@ -59,6 +68,24 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent) {
+        val openChat = intent.getBooleanExtra("openChat", false)
+        val channelId = intent.getStringExtra("channelId")
+
+        if (openChat && !channelId.isNullOrEmpty()) {
+            android.util.Log.d("MainActivity", "Opening chat from notification: $channelId")
+            lifecycleScope.launch {
+                delay(500) // Đợi UI ready
+                startActivity(SingleChatScreen.getIntent(this@MainActivity, channelId))
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -66,6 +93,9 @@ class MainActivity : ComponentActivity() {
 fun SwipeAppNavigation() {
     val navController = rememberNavController()
     val vm = hiltViewModel<TCViewModel>()
+
+    // ✅ Request notification permission
+    com.btl.tinder.utils.RequestNotificationPermission()
 
     NotificationMessage(vm = vm)
 
@@ -87,7 +117,7 @@ fun SwipeAppNavigation() {
         }
 
         composable(DestinationScreen.Profile.route) {
-            ProfileScreen(navController,vm)
+            ProfileScreen(navController, vm)
         }
 
         composable(DestinationScreen.Swipe.route) {
@@ -95,7 +125,7 @@ fun SwipeAppNavigation() {
         }
 
         composable(DestinationScreen.ChatList.route) {
-            ChatListScreen(navController,vm)
+            ChatListScreen(navController, vm)
         }
 
         composable(DestinationScreen.CreatePost.route) {
@@ -121,6 +151,5 @@ fun SwipeAppNavigation() {
         composable(DestinationScreen.EditProfileScreen.route) {
             EditProfileScreen(navController, vm)
         }
-
     }
 }
