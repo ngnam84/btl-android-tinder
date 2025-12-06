@@ -1,6 +1,7 @@
 package com.btl.tinder
 
 // https://mvnrepository.com/artifact/org.json/json
+import android.text.format.DateUtils
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
+import java.util.Date
 
 
 /**
@@ -143,7 +145,7 @@ fun GeoCoder(
         val request: Request = Request.Builder().url(url).build()
         val response: Response = client.newCall(request).execute()
         if (response.code == 200) {
-            val json = JSONObject(response.body!!.string())
+            val json = JSONObject(response.body.string())
 
             val results = json.getJSONArray("features")
             val firstResult = results.getJSONObject(0)
@@ -155,10 +157,23 @@ fun GeoCoder(
 //            System.err.println("Request error " + response.code)
 //            System.err.println(response.body!!.string())
             Log.e("GeoCoder", "Request error " + response.code)
-            Log.e("GeoCoder", response.body!!.string())
+            Log.e("GeoCoder", response.body.string())
         }
     } catch( e: Exception ) {
 
     }
 }
+
+@Composable
+fun formatTimestamp(timestamp: Date): String {
+    val now = System.currentTimeMillis()
+    // Returns a string like "5 min. ago"
+    return DateUtils.getRelativeTimeSpanString(
+        timestamp.time,
+        now,
+        DateUtils.MINUTE_IN_MILLIS,
+        DateUtils.FORMAT_ABBREV_RELATIVE
+    ).toString()
+}
+
 

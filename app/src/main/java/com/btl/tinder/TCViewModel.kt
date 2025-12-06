@@ -15,6 +15,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.messaging.FirebaseMessaging
@@ -39,6 +40,7 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import io.getstream.chat.android.models.Device
 import io.getstream.chat.android.models.PushProvider
@@ -66,6 +68,8 @@ class TCViewModel @Inject constructor(
     val popupNotification = mutableStateOf<Event<String>?>(null)
     val signInState = mutableStateOf(SignInState.SIGNED_OUT)
     val userData = mutableStateOf<UserData?>(null)
+    val posts = mutableStateOf<List<PostData>>(listOf())
+    val profileDetailPosts = mutableStateOf<List<PostData>>(listOf())
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
@@ -365,6 +369,7 @@ class TCViewModel @Inject constructor(
                     userData.value = user
                     inProgress.value = false
                     Log.d("TCViewModel", "User data loaded: ${userData.value}")
+                    getPosts(uid)
                     populateCards()
 
                     if (user != null) {
@@ -808,5 +813,91 @@ class TCViewModel @Inject constructor(
             handleException(e, "Error getting location data")
             null
         }
+    }
+
+
+    // ---------------------- POSTS ----------------------
+
+    fun createPost(caption: String, mediaUris: List<Uri>, onPostCreated: () -> Unit) {
+        viewModelScope.launch {
+            inProgress.value = true
+            // Create a local, immutable copy of the userData
+            val currentUser = userData.value
+
+            try {
+                if (currentUser?.userId == null) {
+                    handleException(customMessage = "User not logged in")
+                    inProgress.value = false // Ensure progress is stopped on error
+                    return@launch
+                }
+
+                // 1. Upload media and get URLs
+                val mediaItems = mutableListOf<MediaItem>()
+                for (uri in mediaUris) {
+                    val storageRef = storage.reference.child("posts/${currentUser.userId}/${UUID.randomUUID()}")
+                    val downloadUrl = storageRef.putFile(uri).await().storage.downloadUrl.await().toString()
+
+                    // For now, assume everything is an image.
+                    // A real app would check the MIME type from the Uri.
+                    mediaItems.add(MediaItem(url = downloadUrl, type = "image"))
+                }
+
+                // 2. Create PostData object
+                val postId = db.collection(COLLECTION_USER).document().id
+                val post = PostData(
+                    postId = postId,
+                    userId = currentUser.userId!!,
+                    username = currentUser.username ?: currentUser.name ?: "",
+                    userImage = currentUser.imageUrl ?: "",
+                    caption = caption.takeIf { it.isNotBlank() },
+                    media = mediaItems
+                )
+
+                // 3. Save to Firestore
+                db.collection(COLLECTION_USER).document(currentUser.userId!!)
+                    .collection("posts").document(postId).set(post)
+                    .await()
+
+                popupNotification.value = Event("Post created successfully!")
+                inProgress.value = false
+                onPostCreated()
+
+            } catch (e: Exception) {
+                handleException(e, "Failed to create post.")
+                // Ensure inProgress is set to false in case of any exception
+                inProgress.value = false
+            }
+        }
+    }
+
+
+    fun getPosts(uid: String) {
+        db.collection(COLLECTION_USER).document(uid)
+            .collection("posts")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    handleException(error, "Failed to get posts")
+                    return@addSnapshotListener
+                }
+                if (value != null) {
+                    posts.value = value.documents.mapNotNull { it.toObject<PostData>() }
+                }
+            }
+    }
+
+    fun getPostsForUser(userId: String) {
+        db.collection(COLLECTION_USER).document(userId)
+            .collection("posts")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    handleException(error, "Failed to get posts for user $userId")
+                    return@addSnapshotListener
+                }
+                if (value != null) {
+                    profileDetailPosts.value = value.documents.mapNotNull { it.toObject<PostData>() }
+                }
+            }
     }
 }

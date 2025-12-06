@@ -143,6 +143,7 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
                         val latToSave = selectedCity?.lat
                         val longToSave = selectedCity?.lng
 
+<<<<<<< HEAD
 //                        vm.updateProfileData(
 //                            name = name,
 //                            username = username,
@@ -154,6 +155,20 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
 //                            lat = latToSave,
 //                            long = longToSave
 //                        )
+=======
+                        vm.updateProfileData(
+                            name = name,
+                            username = username,
+                            bio = bio,
+                            gender = gender,
+                            genderPreference = genderPreference,
+                            interests = interests,
+                            address = addressToSave,
+                            lat = latToSave,
+                            long = longToSave,
+                            ftsComplete = true
+                        )
+>>>>>>> ba03120bd2d99e5d7025a45823be43a5f224dbf8
                     }
                 },
                 onBack = { navigateTo(navController, DestinationScreen.Profile.route) },
@@ -168,7 +183,7 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
 
 @Composable
 fun ProfileContent(
-    modifier:Modifier,
+    modifier: Modifier,
     vm: TCViewModel,
     name: String,
     username: String,

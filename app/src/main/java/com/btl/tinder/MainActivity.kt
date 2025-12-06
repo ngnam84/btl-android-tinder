@@ -19,6 +19,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.btl.tinder.ui.*
+import com.btl.tinder.ui.AnimatedSplashScreen
+import com.btl.tinder.ui.ChatListScreen
+import com.btl.tinder.ui.CreatePostScreen
+import com.btl.tinder.ui.EditProfileScreen
+import com.btl.tinder.ui.FTSProfileScreen
+import com.btl.tinder.ui.LoginScreen
+import com.btl.tinder.ui.ProfileDetailScreen
+import com.btl.tinder.ui.ProfileScreen
+import com.btl.tinder.ui.SignupScreen
+import com.btl.tinder.ui.SwipeScreen
 import com.btl.tinder.ui.theme.TinderCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -32,6 +42,7 @@ sealed class DestinationScreen(val route: String) {
     object Profile : DestinationScreen("profile")
     object Swipe : DestinationScreen("swipe")
     object ChatList : DestinationScreen("chatList")
+    object CreatePost : DestinationScreen("createPost")
     object EditProfileScreen : DestinationScreen("editProfile")
     object ProfileDetail : DestinationScreen("profileDetail/{userId}") {
         fun createRoute(userId: String?) = "profileDetail/$userId"
@@ -115,6 +126,10 @@ fun SwipeAppNavigation() {
 
         composable(DestinationScreen.ChatList.route) {
             ChatListScreen(navController, vm)
+        }
+
+        composable(DestinationScreen.CreatePost.route) {
+            CreatePostScreen(navController, vm)
         }
 
         composable(

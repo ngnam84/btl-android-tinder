@@ -2,18 +2,25 @@ package com.btl.tinder.ui
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -25,6 +32,9 @@ import androidx.navigation.NavController
 import com.btl.tinder.CommonImage
 import com.btl.tinder.DestinationScreen
 import com.btl.tinder.TCViewModel
+import com.btl.tinder.data.PostData
+import com.btl.tinder.data.UserData
+import com.btl.tinder.formatTimestamp
 import com.btl.tinder.navigateTo
 import com.btl.tinder.ui.theme.deliusFontFamily
 import com.btl.tinder.ui.theme.playpenFontFamily
@@ -34,171 +44,311 @@ import com.btl.tinder.ui.theme.playpenFontFamily
 @Composable
 fun ProfileScreen(navController: NavController, vm: TCViewModel) {
     val userData = vm.userData.value
+    val posts = vm.posts.value
 
     if (userData == null) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-            Text(text = "User not found.", color = Color.White)
+            Text(text = "Loading profile...", color = Color.White)
         }
         return
+    }
+
+    LaunchedEffect(key1 = userData.userId) {
+        userData.userId?.let { vm.getPosts(it) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)) {
-            // Image with Gradient
+
             item {
-                Box(modifier = Modifier
-                    .fillParentMaxWidth()
-                    .height(450.dp)) {
-                    CommonImage(
-                        data = userData.imageUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    // Gradient scrim
-                    Box(modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black),
-                                startY = 400f
-                            )
-                        )
-                    )
-                }
+                ProfileHeader(userData = userData, navController = navController)
             }
 
-            // User Info
             item {
-                Column(
+                Row(
                     modifier = Modifier
-                        .fillParentMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = userData.name ?: userData.username ?: "",
-                            color = Color.White,
-                            fontSize = 50.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = deliusFontFamily,
-                            modifier = Modifier.weight(1f),
-                            lineHeight = 52.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (!userData.address.isNullOrEmpty()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Filled.LocationOn,
-                                contentDescription = "Location",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = userData.address!!,
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = deliusFontFamily
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (!userData.bio.isNullOrEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF744D8C)),
-                            border = BorderStroke(2.dp, Color(0xFF5C3D70))
-                        ) {
-                            Text(
-                                text = userData.bio!!,
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontFamily = playpenFontFamily,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
                     Text(
-                        text = "Interests",
+                        text = "My Posts",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = playpenFontFamily
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (userData.interests.isNotEmpty()) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            userData.interests.forEach { interest ->
-                                Card(
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFF7898)),
-                                    border = BorderStroke(2.dp, Color(0xFFE06888))
-                                ) {
-                                    Text(
-                                        text = interest,
-                                        color = Color.White,
-                                        fontFamily = playpenFontFamily,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                                    )
-                                }
-                            }
-                        }
+                    IconButton(onClick = {
+                        navigateTo(navController, DestinationScreen.CreatePost.route)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Post",
+                            tint = Color.White
+                        )
                     }
-
-                    Spacer(Modifier.height(100.dp)) // Space for bottom nav
                 }
+            }
+
+            if (posts.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No posts yet. Tap the + button to create your first post!",
+                            color = Color.Gray,
+                            fontFamily = playpenFontFamily,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+                    }
+                }
+            } else {
+                items(posts) { post ->
+                    PostCard(post = post, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(100.dp)) // Space for bottom nav
             }
         }
 
-        // Top buttons, over everything
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.End, // Changed to End
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.2f), CircleShape)
-            ) {
-                IconButton(onClick = {
-                    navigateTo(navController, DestinationScreen.EditProfileScreen.route)
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Settings, // Changed icon
-                        contentDescription = "Edit Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-        }
-
-        Box(modifier=Modifier.align(Alignment.BottomCenter)) {
+        TopButtons(navController)
+        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
             BottomNavigationMenu(
                 selectedItem = BottomNavigationItem.PROFILE,
                 navController = navController
             )
+        }
+    }
+}
+
+
+@Composable
+fun ProfileHeader(userData: UserData, navController: NavController) {
+    Column {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .height(450.dp)) {
+            CommonImage(
+                data = userData.imageUrl,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black),
+                        startY = 400f
+                    )
+                )
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = userData.name ?: userData.username ?: "",
+                    color = Color.White,
+                    fontSize = 50.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = deliusFontFamily,
+                    modifier = Modifier.weight(1f),
+                    lineHeight = 52.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (!userData.address.isNullOrEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.LocationOn,
+                        contentDescription = "Location",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = userData.address!!,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = deliusFontFamily
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (!userData.bio.isNullOrEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF744D8C)),
+                    border = BorderStroke(2.dp, Color(0xFF5C3D70))
+                ) {
+                    Text(
+                        text = userData.bio!!,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = playpenFontFamily,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Interests",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = playpenFontFamily
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (userData.interests.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    userData.interests.forEach { interest ->
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFF7898)),
+                            border = BorderStroke(2.dp, Color(0xFFE06888))
+                        ) {
+                            Text(
+                                text = interest,
+                                color = Color.White,
+                                fontFamily = playpenFontFamily,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun TopButtons(navController: NavController) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.2f), CircleShape)
+        ) {
+            IconButton(onClick = {
+                navigateTo(navController, DestinationScreen.EditProfileScreen.route)
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Edit Profile",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun PostCard(post: PostData, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
+    ) {
+        Column {
+            // Post Header: Avatar, Username, and Timestamp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CommonImage(
+                    data = post.userImage,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = post.username,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = playpenFontFamily
+                    )
+                    post.timestamp?.let {
+                        Text(
+                            text = formatTimestamp(it),
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            // Caption
+            if (!post.caption.isNullOrEmpty()) {
+                Text(
+                    text = post.caption,
+                    color = Color.White,
+                    fontFamily = playpenFontFamily,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                )
+            }
+
+            // Media (Image/Video Pager)
+            if (post.media.isNotEmpty()) {
+                val pagerState = rememberPagerState(pageCount = { post.media.size })
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f) // Square aspect ratio for media
+                        .background(Color.Black)
+                ) { page ->
+                    val mediaItem = post.media[page]
+                    // For now, we only support images. Videos would require a different player.
+                    CommonImage(
+                        data = mediaItem.url,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
         }
     }
 }
