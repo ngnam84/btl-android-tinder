@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -34,6 +36,11 @@ import com.btl.tinder.ui.theme.playpenFontFamily
 fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCViewModel) {
     val userMatch = vm.matchProfiles.value.find { it.user.userId == userId }
     val user = userMatch?.user
+    val posts = vm.profileDetailPosts.value
+
+    LaunchedEffect(key1 = userId) {
+        vm.getPostsForUser(userId)
+    }
 
     if (user == null || userMatch == null) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
@@ -70,7 +77,7 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 }
             }
 
-            // User Info
+            // User Info Section
             item {
                 Column(
                     modifier = Modifier
@@ -169,9 +176,46 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(500.dp))
                 }
+            }
+
+            // Posts Title Section
+            item {
+                Text(
+                    text = "Posts",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = playpenFontFamily,
+                    modifier = Modifier.padding(start = 24.dp, end = 32.dp, top = 24.dp)
+                )
+            }
+
+            // Posts Feed Section
+            if (posts.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp, horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${user.name ?: "This user"} hasn't posted anything yet.",
+                            color = Color.Gray,
+                            fontFamily = playpenFontFamily,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(posts) { post ->
+                    PostCard(post = post, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(50.dp))
             }
         }
 

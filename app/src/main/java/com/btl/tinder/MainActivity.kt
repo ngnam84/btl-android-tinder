@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.btl.tinder.ui.AnimatedSplashScreen
 import com.btl.tinder.ui.ChatListScreen
+import com.btl.tinder.ui.CreatePostScreen
 import com.btl.tinder.ui.EditProfileScreen
 import com.btl.tinder.ui.FTSProfileScreen
 import com.btl.tinder.ui.LoginScreen
@@ -36,6 +37,7 @@ sealed class DestinationScreen(val route: String) {
     object Profile : DestinationScreen("profile")
     object Swipe : DestinationScreen("swipe")
     object ChatList : DestinationScreen("chatList")
+    object CreatePost : DestinationScreen("createPost")
     object EditProfileScreen : DestinationScreen("editProfile")
     object ProfileDetail : DestinationScreen("profileDetail/{userId}") {
         fun createRoute(userId: String?) = "profileDetail/$userId"
@@ -96,6 +98,10 @@ fun SwipeAppNavigation() {
             ChatListScreen(navController,vm)
         }
 
+        composable(DestinationScreen.CreatePost.route) {
+            CreatePostScreen(navController, vm)
+        }
+
         composable(
             route = DestinationScreen.ProfileDetail.route,
             enterTransition = {
@@ -118,7 +124,3 @@ fun SwipeAppNavigation() {
 
     }
 }
-
-
-
-
