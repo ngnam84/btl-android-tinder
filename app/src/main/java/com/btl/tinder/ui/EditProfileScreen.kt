@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import meshGradient
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.collectAsState
 import com.btl.tinder.data.InterestData
@@ -77,15 +78,31 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import com.btl.tinder.data.CityData
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.SideEffect
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.foundation.border
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.text.TextStyle
 
 enum class Gender {
     MALE, FEMALE, ANY
 }
 
-
-
 @Composable
 fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
+    val systemUiController = rememberSystemUiController()
+
+    SideEffect {
+        systemUiController.setStatusBarColor(
+            color = Color.Transparent,
+            darkIcons = true
+        )
+        systemUiController.setNavigationBarColor(
+            color = Color.Transparent
+        )
+    }
+
     val inProgress = vm.inProgress.value
     val scope = rememberCoroutineScope()
 
@@ -110,59 +127,74 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
         var cityInput by rememberSaveable { mutableStateOf(userData?.address ?: "") }
 
 
-        Column(modifier = Modifier
-            .background(Color.White)
-            .statusBarsPadding()
+        Box(modifier = Modifier
             .fillMaxSize()
-        ){
-            ProfileContent(
-                modifier = Modifier
-                    .weight(1f),
-                vm=vm,
-                name=name,
-                username=username,
-                bio = bio,
-                gender = gender,
-                genderPreference = genderPreference,
-                interests = interests,
-                cityInput = cityInput,
-                onNameChange = {name = it},
-                onUsernameChange = {username = it},
-                onBioChange = { bio = it},
-                onGenderChange = {gender = it},
-                onGenderPreferenceChange = {genderPreference=it},
-                onInterestsChange = {interests = it},
-                onCityInputChanged = { cityInput = it },
-                onCitySelected = {
-                    selectedCity = it
-                    cityInput = it?.city ?: ""
-                },
-                onSave = {
-                    scope.launch {
-                        val addressToSave = selectedCity?.city ?: cityInput.ifBlank { null }
-                        val latToSave = selectedCity?.lat
-                        val longToSave = selectedCity?.lng
-
-                        vm.updateProfileData(
-                            name = name,
-                            username = username,
-                            bio = bio,
-                            gender = gender,
-                            genderPreference = genderPreference,
-                            interests = interests,
-                            address = addressToSave,
-                            lat = latToSave,
-                            long = longToSave,
-                            ftsComplete = true
-                        )
-                    }
-                },
-                onBack = { navigateTo(navController, DestinationScreen.Profile.route) },
-                onLogout = {
-                    vm.onLogout()
-                    navigateTo(navController, DestinationScreen.Login.route)
-                }
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White,
+                        Color.White,
+                        Color(0xFFFFC1CC),
+                        Color(0xFFD1C4E9),
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(1000f, 2500f)
+                )
             )
+        ){
+            Column(modifier = Modifier
+                .statusBarsPadding()
+                .fillMaxSize()
+            ){
+                ProfileContent(
+                    modifier = Modifier
+                        .weight(1f),
+                    vm=vm,
+                    name=name,
+                    username=username,
+                    bio = bio,
+                    gender = gender,
+                    genderPreference = genderPreference,
+                    interests = interests,
+                    cityInput = cityInput,
+                    onNameChange = {name = it},
+                    onUsernameChange = {username = it},
+                    onBioChange = { bio = it},
+                    onGenderChange = {gender = it},
+                    onGenderPreferenceChange = {genderPreference=it},
+                    onInterestsChange = {interests = it},
+                    onCityInputChanged = { cityInput = it },
+                    onCitySelected = {
+                        selectedCity = it
+                        cityInput = it?.city ?: ""
+                    },
+                    onSave = {
+                        scope.launch {
+                            val addressToSave = selectedCity?.city ?: cityInput.ifBlank { null }
+                            val latToSave = selectedCity?.lat
+                            val longToSave = selectedCity?.lng
+
+                            vm.updateProfileData(
+                                name = name,
+                                username = username,
+                                bio = bio,
+                                gender = gender,
+                                genderPreference = genderPreference,
+                                interests = interests,
+                                address = addressToSave,
+                                lat = latToSave,
+                                long = longToSave,
+                                ftsComplete = true
+                            )
+                        }
+                    },
+                    onBack = { navigateTo(navController, DestinationScreen.Profile.route) },
+                    onLogout = {
+                        vm.onLogout()
+                        navigateTo(navController, DestinationScreen.Login.route)
+                    }
+                )
+            }
         }
     }
 }
@@ -198,137 +230,197 @@ fun ProfileContent(
         .verticalScroll(scrollState)
         .navigationBarsPadding()
         .imePadding()
+        .padding(horizontal = 16.dp)
     ){
         Row(modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 16.dp),horizontalArrangement = Arrangement.SpaceBetween
         ){
-            Text("Back",Modifier.clickable {onBack.invoke()})
-            Text("Save",Modifier.clickable {onSave.invoke()})
+            Text("Back",Modifier.clickable {onBack.invoke()},
+                fontFamily = deliusFontFamily,
+                color = Color(0xFFFF789B),
+                fontWeight = FontWeight.Bold)
+            Text("Save",Modifier.clickable {onSave.invoke()},
+                fontFamily = deliusFontFamily,
+                color = Color(0xFFFF789B),
+                fontWeight = FontWeight.Bold)
         }
-
-        CommonDivider()
 
         ProfileImage(imageUrl = imageUrl,vm = vm)
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
-        {
-            Text("Username",modifier = Modifier.width(100.dp))
-            TextField(
-                value = username,
-                onValueChange = onUsernameChange,
-                colors = TextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
-            )
-        }
 
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = onUsernameChange,
+            label = { Text("Username", fontFamily = deliusFontFamily, color = Color.Black) },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Black,
+                cursorColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Gray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Name", fontFamily = deliusFontFamily, color = Color.Black) },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Black,
+                cursorColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Gray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = bio,
+            onValueChange = onBioChange,
+            label = { Text("Bio", fontFamily = deliusFontFamily, color = Color.Black) },
+            singleLine = false,
+            modifier = Modifier.fillMaxWidth().height(120.dp),
+            textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Black,
+                cursorColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Gray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
+        )
+
+        Spacer(Modifier.height(16.dp))
         CommonDivider()
+        Spacer(Modifier.height(8.dp))
 
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
-        {
-            Text("Name",modifier = Modifier.width(100.dp))
-            TextField(
-                value = name,
-                onValueChange = onNameChange,
-                colors = TextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
-            )
-        }
-
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
-        {
-            Text("Bio",modifier = Modifier.width(100.dp))
-            TextField(
-                value = bio,
-                onValueChange = onBioChange,
-                colors = TextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black),
-                singleLine = false
-            )
-        }
-
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
-        {
-            Text("I am a ", modifier = Modifier
-                .width(100.dp)
-                .padding(8.dp))
-            Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+            Text("I am a:", fontFamily = deliusFontFamily, color = Color.Black)
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically){
                     RadioButton(
-                        selected = gender ==Gender.MALE,
-                        onClick = {onGenderChange(Gender.MALE) })
-                    Text(
-                        text = "Man",
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clickable { onGenderChange(Gender.MALE) })
-
-                }
-                Row(verticalAlignment = Alignment.CenterVertically){
-                    RadioButton(
-                        selected = gender ==Gender.FEMALE,
-                        onClick = {onGenderChange(Gender.FEMALE) })
-                    Text(
-                        text = "Girl",
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clickable { onGenderChange(Gender.FEMALE) })
-
-                }
-            }
-        }
-
-        CommonDivider()
-
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically)
-        {
-            Text("I'm looking for", modifier = Modifier
-                .width(100.dp)
-                .padding(8.dp))
-            Column(Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically){
-                    RadioButton(
-                        selected = genderPreference ==Gender.MALE,
-                        onClick = {onGenderPreferenceChange(Gender.MALE) })
+                        selected = gender == Gender.MALE,
+                        onClick = {onGenderChange(Gender.MALE)},
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = Color(0xFFFF789B),
+                            unselectedColor = Color.Black
+                        )
+                    )
                     Text(
                         text = "Male",
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clickable { onGenderPreferenceChange(Gender.MALE) })
-
+                        modifier = Modifier.clickable { onGenderChange(Gender.MALE) },
+                        fontFamily = deliusFontFamily,
+                        color = Color.Black
+                    )
                 }
+                Spacer(Modifier.width(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically){
                     RadioButton(
-                        selected = genderPreference ==Gender.FEMALE,
-                        onClick = {onGenderPreferenceChange(Gender.FEMALE) })
+                        selected = gender == Gender.FEMALE,
+                        onClick = {onGenderChange(Gender.FEMALE)},
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = Color(0xFFFF789B),
+                            unselectedColor = Color.Black
+                        )
+                    )
                     Text(
                         text = "Female",
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clickable { onGenderPreferenceChange(Gender.FEMALE) })
-
-                }
-                Row(verticalAlignment = Alignment.CenterVertically){
-                    RadioButton(
-                        selected = genderPreference ==Gender.ANY,
-                        onClick = {onGenderPreferenceChange(Gender.ANY) })
-                    Text(
-                        text = "Any",
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clickable { onGenderPreferenceChange(Gender.ANY) })
-
+                        modifier = Modifier.clickable { onGenderChange(Gender.FEMALE) },
+                        fontFamily = deliusFontFamily,
+                        color = Color.Black
+                    )
                 }
             }
         }
 
+        Spacer(Modifier.height(8.dp))
         CommonDivider()
+
+        Spacer(Modifier.height(8.dp))
+
+        Column(Modifier.fillMaxWidth()) {
+            Text("I'm looking for:", fontFamily = deliusFontFamily, color = Color.Black)
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically){
+                    RadioButton(
+                        selected = genderPreference == Gender.MALE,
+                        onClick = {onGenderPreferenceChange(Gender.MALE)},
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = Color(0xFFFF789B),
+                            unselectedColor = Color.Black
+                        )
+                    )
+                    Text(
+                        text = "Male",
+                        modifier = Modifier.clickable { onGenderPreferenceChange(Gender.MALE) },
+                        fontFamily = deliusFontFamily,
+                        color = Color.Black
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically){
+                    RadioButton(
+                        selected = genderPreference == Gender.FEMALE,
+                        onClick = {onGenderPreferenceChange(Gender.FEMALE)},
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = Color(0xFFFF789B),
+                            unselectedColor = Color.Black
+                        )
+                    )
+                    Text(
+                        text = "Female",
+                        modifier = Modifier.clickable { onGenderPreferenceChange(Gender.FEMALE) },
+                        fontFamily = deliusFontFamily,
+                        color = Color.Black
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically){
+                    RadioButton(
+                        selected = genderPreference == Gender.ANY,
+                        onClick = {onGenderPreferenceChange(Gender.ANY)},
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = Color(0xFFFF789B),
+                            unselectedColor = Color.Black
+                        )
+                    )
+                    Text(
+                        text = "Any",
+                        modifier = Modifier.clickable { onGenderPreferenceChange(Gender.ANY) },
+                        fontFamily = deliusFontFamily,
+                        color = Color.Black
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        CommonDivider()
+        Spacer(Modifier.height(8.dp))
 
         // --- Autocomplete City Search Bar from FTSProfileScreen ---
         CityAutocompleteTextField(
@@ -338,52 +430,50 @@ fun ProfileContent(
             cityInputValue = cityInput
         )
 
-
+        Spacer(Modifier.height(8.dp))
         CommonDivider()
+        Spacer(Modifier.height(8.dp))
         InterestsSelector(
             selectedInterests = interests,
             onInterestsChange = onInterestsChange
         )
-        CommonDivider()
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center)
-        {
-            Button(
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(25.dp),
+            contentPadding = PaddingValues(),
+            onClick = { onLogout.invoke() }
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(50.dp)
-                    .clickable { onLogout.invoke() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(25.dp),
-                contentPadding = PaddingValues(),
-                onClick = { onLogout.invoke() }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFFFF789B),
-                                    Color(0xFFD7274E)
-                                )
-                            ),
-                            shape = RoundedCornerShape(25.dp)
-                        )
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Logout",
-                        color = Color.White,
-                        fontFamily = deliusFontFamily,
-                        fontWeight = FontWeight.W600,
-                        fontSize = 18.sp
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFFF789B),
+                                Color(0xFFD7274E)
+                            )
+                        ),
+                        shape = RoundedCornerShape(25.dp)
                     )
-                }
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Logout",
+                    color = Color.White,
+                    fontFamily = deliusFontFamily,
+                    fontWeight = FontWeight.W600,
+                    fontSize = 18.sp
+                )
             }
-//            Text("Logout",Modifier.clickable {onLogout.invoke()})
         }
+
+        Spacer(Modifier.height(32.dp))
     }
 }
 
@@ -396,56 +486,37 @@ fun ProfileImage(imageUrl : String?,vm: TCViewModel) {
         uri?.let {vm.uploadProfileImage(uri)}
     }
 
-    val animatedPoint = remember { Animatable(.8f) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            animatedPoint.animateTo(
-                targetValue = .1f,
-                animationSpec = tween(durationMillis = 10000)
-            )
-            animatedPoint.animateTo(
-                targetValue = .9f,
-                animationSpec = tween(durationMillis = 10000)
-            )
-        }
-    }
-
-    Box(modifier = Modifier
-        .height(IntrinsicSize.Min)
-        .padding(0.dp)
-        .meshGradient(
-            points = listOf(
-                listOf(
-                    Offset(0f, 0f) to Color(0xFFFFB3C6),
-                    Offset(.5f, 0f) to Color(0xFFFFB3C6),
-                    Offset(1f, 0f) to Color(0xFFFFB3C6),
-                ),
-                listOf(
-                    Offset(0f, .5f) to Color(0xFFFF7898),
-                    Offset(.5f, .9f) to Color(0xFFFF7898),
-                    Offset(1f, .5f) to Color(0xFFFF7898),
-                ),
-                listOf(
-                    Offset(0f, 1f) to Color(0xFFF83460),
-                    Offset(.5f, 1f) to Color(0xFFF83460),
-                    Offset(1f, 1f) to Color(0xFFF83460),
-                ),
-            ),
-        )) {
-        Column(modifier = Modifier
-            .padding(8.dp)
-            .padding(top = 16.dp, bottom = 16.dp)
-            .fillMaxWidth()
-            .clickable {
-                launcher.launch("image/*")
-            },horizontalAlignment = Alignment.CenterHorizontally)
-        {
-            Card(shape = CircleShape,modifier = Modifier
+    Box(modifier = Modifier.height(IntrinsicSize.Min).padding(0.dp)) {
+        Column(
+            modifier = Modifier
                 .padding(8.dp)
-                .size(100.dp)){
+                .padding(top = 16.dp, bottom = 16.dp)
+                .fillMaxWidth()
+                .clickable {
+                    launcher.launch("image/*")
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                shape = CircleShape,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(150.dp)
+                    .border(
+                        width = 5.dp,
+                        color = Color(0xFF744D8C),
+                        shape = CircleShape
+                    ),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
+            ) {
                 CommonImage(data = imageUrl)
             }
-            Text("Change profile picture", fontFamily = deliusFontFamily, color = Color.Black, fontWeight = FontWeight.Bold)
+            Text(
+                "Change profile picture",
+                fontFamily = deliusFontFamily,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
         }
         val isLoading = vm.inProgress.value
         if(isLoading){
@@ -509,17 +580,23 @@ fun InterestsSelector(
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Input name of interest", fontFamily = deliusFontFamily, color = Color.Gray) },
             leadingIcon = {
-                Icon(androidx.compose.material.icons.Icons.Default.Search, null)
+                Icon(androidx.compose.material.icons.Icons.Default.Search, null, tint = Color(0xFFFF789B))
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Close, null)
+                        Icon(androidx.compose.material.icons.Icons.Default.Close, null, tint = Color(0xFFFF789B))
                     }
                 }
             },
             singleLine = true,
-            colors = TextFieldDefaults.colors(
+            textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFFF789B),
+                unfocusedBorderColor = Color(0xFF744D8C),
+                cursorColor = Color(0xFFFF789B),
+                focusedLabelColor = Color(0xFFFF789B),
+                unfocusedLabelColor = Color.Gray,
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             )
@@ -531,7 +608,8 @@ fun InterestsSelector(
         if (suggestions.isNotEmpty() && validationResult == null && searchQuery.isNotEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(4.dp)
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
                     modifier = Modifier
@@ -562,85 +640,61 @@ fun InterestsSelector(
                             CommonDivider()
                         }
                     }
-
-                    // Add new button
-                    if (searchQuery.length >= 2) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        val result = FinalInterestValidator.validate(
-                                            searchQuery,
-                                            allInterests
-                                        )
-                                        validationResult = result
-                                    }
-                                }
-                                .padding(12.dp)
-                        ) {
-                            Icon(
-                                androidx.compose.material.icons.Icons.Default.Add,
-                                null,
-                                tint = Color(0xFFFF789B)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Add \"$searchQuery\"",
-                                color = Color(0xFFFF789B),
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = deliusFontFamily
-                            )
-                        }
-                    }
                 }
             }
         }
 
-        // Typo suggestion
-        AnimatedVisibility(validationResult is FinalInterestValidator.Result.TypoSuggestion) {
-            (validationResult as? FinalInterestValidator.Result.TypoSuggestion)?.let { typo ->
-                Spacer(Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E6))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Did you mean:", fontSize = 12.sp, color = Color.Gray, fontFamily = deliusFontFamily)
-                        Text(
-                            typo.suggested.name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFF789B),
-                            fontFamily = deliusFontFamily
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row {
-                            Button(
-                                onClick = {
-                                    if (!selectedInterests.contains(typo.suggested.name)) {
-                                        onInterestsChange(selectedInterests + typo.suggested.name)
-                                        viewModel.incrementInterestUsage(typo.suggested.id)
+        // Add new button - LUÔN HIỂN THỊ khi đang gõ
+        if (searchQuery.length >= 2 && validationResult == null) {
+            Spacer(Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5F7))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            scope.launch {
+                                val trimmed = searchQuery.trim()
+                                val exactMatch = allInterests.find { it.name.equals(trimmed, ignoreCase = true) }
+
+                                if (exactMatch != null) {
+                                    // Nếu trùng khớp chính xác, thêm luôn vào danh sách đã chọn
+                                    if (!selectedInterests.contains(exactMatch.name)) {
+                                        onInterestsChange(selectedInterests + exactMatch.name)
+                                        viewModel.incrementInterestUsage(exactMatch.id)
                                     }
                                     searchQuery = ""
                                     validationResult = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF789B))
-                            ) {
-                                Text("Yes, that's it", fontFamily = deliusFontFamily)
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            OutlinedButton(onClick = {
-                                viewModel.addNewInterest(typo.original) { newInterest ->
-                                    onInterestsChange(selectedInterests + newInterest.name)
-                                    searchQuery = ""
-                                    validationResult = null
+                                } else {
+                                    // Các trường hợp còn lại đều coi là NewInterest
+                                    val capitalized = trimmed.split(" ")
+                                        .joinToString(" ") { token -> token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
+
+                                    validationResult = FinalInterestValidator.Result.NewInterest(
+                                        name = capitalized,
+                                        needsReview = true
+                                    )
                                 }
-                            }) {
-                                Text("No, add \"${typo.original}\"", fontFamily = deliusFontFamily)
                             }
                         }
-                    }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Add,
+                        null,
+                        tint = Color(0xFFFF789B)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Add \"$searchQuery\" as new interest",
+                        color = Color(0xFFFF789B),
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = deliusFontFamily
+                    )
                 }
             }
         }
@@ -651,16 +705,16 @@ fun InterestsSelector(
                 Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F5))
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Ready to add:", fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
-                        Text(new.name, fontSize = 18.sp, fontFamily = deliusFontFamily, color = Color.Black)
+                        Text("Ready to add:", fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color(0xFFFF789B))
+                        Text(new.name, fontSize = 18.sp, fontFamily = deliusFontFamily, color = Color(0xFF744D8C), fontWeight = FontWeight.Bold)
                         if (new.needsReview) {
                             Text(
                                 "Will be reviewed by an admin later",
                                 fontSize = 12.sp,
-                                color = Color.Gray,
+                                color = Color(0xFF744D8C),
                                 fontFamily = deliusFontFamily
                             )
                         }
@@ -674,35 +728,29 @@ fun InterestsSelector(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues()
                         ) {
-                            Text("Add \"${new.name}\"", fontFamily = deliusFontFamily)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Invalid
-        AnimatedVisibility(validationResult is FinalInterestValidator.Result.Invalid) {
-            (validationResult as? FinalInterestValidator.Result.Invalid)?.let { invalid ->
-                Spacer(Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Invalid:", fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), fontFamily = deliusFontFamily)
-                        Text(invalid.reason, fontSize = 14.sp, fontFamily = deliusFontFamily, color = Color.Black)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                searchQuery = ""
-                                validationResult = null
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Try again", fontFamily = deliusFontFamily)
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color(0xFFFF789B),
+                                                Color(0xFFD7274E)
+                                            )
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Add \"${new.name}\"", fontFamily = deliusFontFamily, color = Color.Black, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -713,7 +761,7 @@ fun InterestsSelector(
 
         // Selected interests chips
         if (selectedInterests.isNotEmpty()) {
-            Text("Selected: ${selectedInterests.size}", fontSize = 14.sp, color = Color.Gray, fontFamily = deliusFontFamily)
+            Text("Selected: ${selectedInterests.size}", fontSize = 14.sp, color = Color.Black, fontFamily = deliusFontFamily)
             Spacer(Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -723,21 +771,31 @@ fun InterestsSelector(
                     FilterChip(
                         selected = true,
                         onClick = { onInterestsChange(selectedInterests - name) },
-                        label = { Text(name, fontFamily = deliusFontFamily) },
+                        label = { Text(name, fontFamily = deliusFontFamily, color = Color.White) },
                         trailingIcon = {
                             Icon(
                                 androidx.compose.material.icons.Icons.Default.Close,
                                 null,
-                                Modifier.size(16.dp)
+                                Modifier.size(16.dp),
+                                tint = Color.White
                             )
-                        }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFFF789B),
+                            selectedLabelColor = Color.White,
+                            selectedLeadingIconColor = Color.White
+                        )
                     )
                 }
             }
         }
         if (!interestsLoaded) {
             Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFFF789B),
+                trackColor = Color(0xFFFFC1CC)
+            )
         }
     }
 }
