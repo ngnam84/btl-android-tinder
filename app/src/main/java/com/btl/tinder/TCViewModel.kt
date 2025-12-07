@@ -39,6 +39,8 @@ import io.ktor.client.request.get
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
@@ -209,7 +211,6 @@ class TCViewModel @Inject constructor(
             chatClient.connectUser(user, streamToken).enqueue { result ->
                 if (result.isSuccess) {
                     Log.d("TCViewModel", "✅ Connected to Stream successfully!")
-                    // ✅ Đăng ký FCM token sau khi connect thành công
                     registerFCMToken()
                 } else {
                     Log.e("TCViewModel", "❌ Stream connect failed: ${result.errorOrNull()?.message}")
@@ -233,14 +234,12 @@ class TCViewModel @Inject constructor(
 
             Log.d("TCViewModel", "✅ FCM Token: $token")
 
-            // ✅ Kiểm tra user đã connect chưa
             val currentUser = chatClient.clientState.user.value
             if (currentUser == null) {
                 Log.w("TCViewModel", "User not connected yet, token will be registered after connection")
                 return@addOnCompleteListener
             }
 
-            // ✅ SỬA: Tạo Device object
             val device = io.getstream.chat.android.models.Device(
                 token = token,
                 pushProvider = io.getstream.chat.android.models.PushProvider.FIREBASE,
@@ -382,12 +381,8 @@ class TCViewModel @Inject constructor(
     // ---------------------- LOGOUT ----------------------
 
     fun onLogout() {
-        // ✅ XÓA TẤT CẢ DEVICE TOKENS KHI LOGOUT
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val token = task.result
-                // ✅ SỬA: deleteDevice cần object Device, không phải String
-                // Giải pháp: Lấy danh sách devices và xóa tất cả
                 chatClient.getDevices().enqueue { devicesResult ->
                     if (devicesResult.isSuccess) {
                         val devices = devicesResult.getOrNull()
@@ -818,31 +813,27 @@ class TCViewModel @Inject constructor(
 
     // ---------------------- POSTS ----------------------
 
-    fun createPost(caption: String, mediaUris: List<Uri>, onPostCreated: () -> Unit) {
+    fun createPost(caption: String, localMedia: List<LocalMediaItem>, onPostCreated: () -> Unit) {
         viewModelScope.launch {
             inProgress.value = true
-            // Create a local, immutable copy of the userData
             val currentUser = userData.value
 
             try {
                 if (currentUser?.userId == null) {
                     handleException(customMessage = "User not logged in")
-                    inProgress.value = false // Ensure progress is stopped on error
                     return@launch
                 }
 
-                // 1. Upload media and get URLs
-                val mediaItems = mutableListOf<MediaItem>()
-                for (uri in mediaUris) {
-                    val storageRef = storage.reference.child("posts/${currentUser.userId}/${UUID.randomUUID()}")
-                    val downloadUrl = storageRef.putFile(uri).await().storage.downloadUrl.await().toString()
+                val uploadedMediaItems = mutableListOf<com.btl.tinder.data.MediaItem>()
+                for (item in localMedia) {
+                    val folder = if (item.type == "image") "images" else "videos"
+                    val storageRef = storage.reference.child("posts/${currentUser.userId}/$folder/${UUID.randomUUID()}")
+                    val downloadUrl = storageRef.putFile(item.uri).await().storage.downloadUrl.await().toString()
 
-                    // For now, assume everything is an image.
-                    // A real app would check the MIME type from the Uri.
-                    mediaItems.add(MediaItem(url = downloadUrl, type = "image"))
+                    uploadedMediaItems.add(com.btl.tinder.data.MediaItem(url = downloadUrl, type = item.type))
+                    Log.d("TCViewModel", "Uploaded ${item.type} to: $downloadUrl")
                 }
 
-                // 2. Create PostData object
                 val postId = db.collection(COLLECTION_USER).document().id
                 val post = PostData(
                     postId = postId,
@@ -850,26 +841,56 @@ class TCViewModel @Inject constructor(
                     username = currentUser.username ?: currentUser.name ?: "",
                     userImage = currentUser.imageUrl ?: "",
                     caption = caption.takeIf { it.isNotBlank() },
-                    media = mediaItems
+                    media = uploadedMediaItems
                 )
 
-                // 3. Save to Firestore
                 db.collection(COLLECTION_USER).document(currentUser.userId!!)
                     .collection("posts").document(postId).set(post)
                     .await()
 
                 popupNotification.value = Event("Post created successfully!")
-                inProgress.value = false
                 onPostCreated()
 
             } catch (e: Exception) {
                 handleException(e, "Failed to create post.")
-                // Ensure inProgress is set to false in case of any exception
+            } finally {
                 inProgress.value = false
             }
         }
     }
 
+    fun deletePost(post: PostData) {
+        viewModelScope.launch {
+            inProgress.value = true
+            try {
+                // 1. Delete all media from Firebase Storage in parallel
+                val deleteJobs = post.media.map {
+                    async {
+                        try {
+                            storage.getReferenceFromUrl(it.url).delete().await()
+                            Log.d("TCViewModel", "Deleted from storage: ${it.url}")
+                        } catch (e: Exception) {
+                            Log.e("TCViewModel", "Failed to delete media from storage: ${it.url}", e)
+                        }
+                    }
+                }
+                deleteJobs.awaitAll()
+
+                // 2. Delete the post document from Firestore
+                db.collection(COLLECTION_USER).document(post.userId)
+                    .collection("posts").document(post.postId)
+                    .delete()
+                    .await()
+
+                popupNotification.value = Event("Post deleted successfully")
+
+            } catch (e: Exception) {
+                handleException(e, "Failed to delete post.")
+            } finally {
+                inProgress.value = false
+            }
+        }
+    }
 
     fun getPosts(uid: String) {
         db.collection(COLLECTION_USER).document(uid)

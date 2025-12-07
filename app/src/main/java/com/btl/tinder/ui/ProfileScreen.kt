@@ -1,10 +1,25 @@
 package com.btl.tinder.ui
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -13,21 +28,38 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import com.btl.tinder.CommonImage
 import com.btl.tinder.DestinationScreen
@@ -112,7 +144,11 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
                 }
             } else {
                 items(posts) { post ->
-                    PostCard(post = post, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
+                    PostCard(
+                        post = post,
+                        vm = vm, 
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                    )
                 }
             }
 
@@ -280,14 +316,40 @@ private fun TopButtons(navController: NavController) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PostCard(post: PostData, modifier: Modifier = Modifier) {
+fun PostCard(post: PostData, vm: TCViewModel, modifier: Modifier = Modifier) {
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val currentUserId = vm.userData.value?.userId
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Post") },
+            text = { Text("Are you sure you want to delete this post? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.deletePost(post)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
     ) {
         Column {
-            // Post Header: Avatar, Username, and Timestamp
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -301,7 +363,7 @@ fun PostCard(post: PostData, modifier: Modifier = Modifier) {
                         .clip(CircleShape)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = post.username,
                         color = Color.White,
@@ -316,9 +378,14 @@ fun PostCard(post: PostData, modifier: Modifier = Modifier) {
                         )
                     }
                 }
+
+                if (post.userId == currentUserId) {
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Post", tint = Color.Gray)
+                    }
+                }
             }
 
-            // Caption
             if (!post.caption.isNullOrEmpty()) {
                 Text(
                     text = post.caption,
@@ -330,25 +397,91 @@ fun PostCard(post: PostData, modifier: Modifier = Modifier) {
                 )
             }
 
-            // Media (Image/Video Pager)
             if (post.media.isNotEmpty()) {
-                val pagerState = rememberPagerState(pageCount = { post.media.size })
-                HorizontalPager(
-                    state = pagerState,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1f) // Square aspect ratio for media
+                        .aspectRatio(1f)
                         .background(Color.Black)
-                ) { page ->
-                    val mediaItem = post.media[page]
-                    // For now, we only support images. Videos would require a different player.
-                    CommonImage(
-                        data = mediaItem.url,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                ) {
+                    val pagerState = rememberPagerState(pageCount = { post.media.size })
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val mediaItem = post.media[page]
+                        when (mediaItem.type) {
+                            "image" -> {
+                                CommonImage(
+                                    data = mediaItem.url,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            "video" -> {
+                                VideoPlayer(url = mediaItem.url)
+                            }
+                            else -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(Color.DarkGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "Unsupported media type", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+
+                    // ✅ SỬA: Icon đã được xóa
+
+                    // Chỉ báo Pager (dấu chấm)
+                    if (pagerState.pageCount > 1) {
+                        Row(
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            repeat(pagerState.pageCount) { iteration ->
+                                val color = if (pagerState.currentPage == iteration) Color.White else Color.Gray.copy(alpha = 0.5f)
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(androidx.media3.common.MediaItem.fromUri(Uri.parse(url)))
+            prepare()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        modifier = modifier.fillMaxSize(),
+        factory = {
+            PlayerView(it).apply {
+                player = exoPlayer
+                useController = true
+            }
+        }
+    )
 }

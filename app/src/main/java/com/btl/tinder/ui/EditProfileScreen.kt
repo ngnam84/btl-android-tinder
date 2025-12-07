@@ -112,14 +112,14 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
         val userData = vm.userData.value
         val g = if(userData?.gender.isNullOrEmpty()) "MALE"
         else userData.gender!!.uppercase()
-        val gpreper = if(userData?.genderPreference.isNullOrEmpty()) "FEMALE"
+        val gPrefer = if(userData?.genderPreference.isNullOrEmpty()) "FEMALE"
         else userData.genderPreference!!.uppercase()
 
         var name by rememberSaveable { mutableStateOf(userData?.name ?: "") }
         var username by rememberSaveable { mutableStateOf(userData?.username ?: "") }
         var bio by rememberSaveable { mutableStateOf(userData?.bio ?: "") }
         var gender by rememberSaveable { mutableStateOf(Gender.valueOf(g)) }
-        var genderPreference by rememberSaveable { mutableStateOf(Gender.valueOf(gpreper)) }
+        var genderPreference by rememberSaveable { mutableStateOf(Gender.valueOf(gPrefer)) }
         var interests by rememberSaveable { mutableStateOf(userData?.interests ?: listOf())}
 
         // State for address, adapted from FTSProfileScreen
