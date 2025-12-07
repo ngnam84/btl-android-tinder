@@ -33,6 +33,10 @@ import com.btl.tinder.ui.theme.TinderCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.util.Log
 
 sealed class DestinationScreen(val route: String) {
     object Splash : DestinationScreen("splash")
@@ -78,11 +82,33 @@ class MainActivity : ComponentActivity() {
         val openChat = intent.getBooleanExtra("openChat", false)
         val channelId = intent.getStringExtra("channelId")
 
+        Log.d("MainActivity", "handleNotificationIntent called")
+        Log.d("MainActivity", "openChat: $openChat, channelId: $channelId")
+
         if (openChat && !channelId.isNullOrEmpty()) {
-            android.util.Log.d("MainActivity", "Opening chat from notification: $channelId")
+            Log.d("MainActivity", "Opening chat from notification: $channelId")
+
+            // ✅ SỬA: Thêm delay và kiểm tra lifecycle
             lifecycleScope.launch {
-                delay(500) // Đợi UI ready
-                startActivity(SingleChatScreen.getIntent(this@MainActivity, channelId))
+                // Đợi UI ready
+                delay(1000)
+
+                try {
+                    // ✅ Format lại channelId nếu cần (thêm prefix "messaging:")
+                    val formattedChannelId = if (channelId.startsWith("messaging:")) {
+                        channelId
+                    } else {
+                        "messaging:$channelId"
+                    }
+
+                    Log.d("MainActivity", "Formatted channel ID: $formattedChannelId")
+
+                    startActivity(
+                        SingleChatScreen.getIntent(this@MainActivity, formattedChannelId)
+                    )
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error opening chat", e)
+                }
             }
         }
     }

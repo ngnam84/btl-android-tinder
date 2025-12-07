@@ -19,87 +19,88 @@ import io.getstream.chat.android.models.PushProvider
 class TCFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
-        private const val MessageReceive = "TCFCMService"
+        private const val TAG = "TCFCMService"
         private const val NOTIFICATION_CHANNEL_ID = "stream_chat_notifications"
         private const val NOTIFICATION_CHANNEL_NAME = "Chat Messages"
     }
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "🔥 FirebaseMessagingService onCreate() called")
         createNotificationChannel()
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d(MessageReceive, "New FCM token: $token")
+        Log.d(TAG, "🔥 onNewToken() called")
+        Log.d(TAG, "New FCM token: $token")
 
         try {
             val chatClient = ChatClient.instance()
-            if (chatClient.clientState.user.value != null) {
+            val user = chatClient.clientState.user.value
+
+            if (user != null) {
                 val device = Device(
                     token = token,
                     pushProvider = PushProvider.FIREBASE,
-                    providerName = "firebase_push"
+                    providerName = "firebase"
                 )
 
                 chatClient.addDevice(device).enqueue { result ->
                     if (result.isSuccess) {
-                        Log.d(MessageReceive, "✅ Device token registered successfully")
+                        Log.d(TAG, "✅ Device token registered successfully")
                     } else {
-                        Log.e(MessageReceive, "❌ Failed to register token: ${result.errorOrNull()?.message}")
+                        Log.e(TAG, "❌ Failed to register token: ${result.errorOrNull()?.message}")
                     }
                 }
             } else {
-                Log.w(MessageReceive, "User not connected yet, token will be registered after connection")
+                Log.w(TAG, "⚠️ User not connected yet")
             }
         } catch (e: Exception) {
-            Log.e(MessageReceive, "Error registering token", e)
+            Log.e(TAG, "❌ Error registering token", e)
         }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        Log.d(MessageReceive, "--- NEW FCM MESSAGE RECEIVED ---")
-        Log.d(MessageReceive, "From: ${message.from}")
+        Log.d(TAG, "🔥 Message received from Stream")
 
-        // ✅ Log the data payload
-        if (message.data.isNotEmpty()) {
-            Log.d(MessageReceive, "Data Payload: ${message.data}")
-        } else {
-            Log.d(MessageReceive, "Data Payload: EMPTY")
-        }
-
-        // ✅ Log the notification payload
-        message.notification?.let {
-            Log.d(MessageReceive, "Notification Payload: title='${it.title}', body='${it.body}'")
-        } ?: run {
-            Log.d(MessageReceive, "Notification Payload: EMPTY")
-        }
-
-        // --- Original Logic ---
         try {
-            val isStreamNotification = message.data.containsKey("channel_id")
-
-            if (isStreamNotification) {
-                Log.d(MessageReceive, "Stream notification detected, handling it...")
-                handleStreamNotification(message)
-            } else {
-                Log.d(MessageReceive, "This is not a Stream notification.")
-            }
+            handleStreamNotification(message)
         } catch (e: Exception) {
-            Log.e(MessageReceive, "Error handling notification", e)
+            Log.e(TAG, "❌ Error handling notification", e)
         }
-        Log.d(MessageReceive, "--- FCM MESSAGE PROCESSING FINISHED ---")
     }
 
-
     private fun handleStreamNotification(message: RemoteMessage) {
-        val channelId = message.data["channel_id"] ?: return
-        val messageText = message.data["message_text"] ?: "New message"
-        val senderName = message.data["sender_name"] ?: "Someone"
-        val senderImage = message.data["sender_image"]
+        var channelId = "unknown"
+        var senderName = "Someone"
+        var messageText = "New message"
+        var senderImage: String? = null
 
-        Log.d(MessageReceive, "Channel: $channelId, From: $senderName, Message: $messageText")
+        // ✅ Lấy channelId
+        channelId = message.data["channel_id"]
+            ?: message.data["cid"]
+                    ?: channelId
+
+        // ✅ Lấy message text từ "body"
+        messageText = message.data["body"] ?: messageText
+
+        // ✅ Parse tên người gửi từ "title"
+        // Format: "New message from Vanessa Doofenshmirtz"
+        message.data["title"]?.let { title ->
+            senderName = if (title.startsWith("New message from ")) {
+                title.removePrefix("New message from ")
+            } else {
+                title
+            }
+        }
+
+        // ✅ Lấy sender image nếu có
+        senderImage = message.data["sender_image"]
+            ?: message.data["image"]
+
+        Log.d(TAG, "📨 Notification: From '$senderName': $messageText")
 
         showNotification(
             channelId = channelId,
@@ -117,10 +118,29 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
     ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        // ✅ SỬA: Format channelId đúng cho intent
+        // Nếu channelId có format "jXtkL0drp3d69H6nyo7twie26xh2-q3ku5QLtiwfawy9PIApq3kLRgB82"
+        // thì cần thêm prefix "messaging:"
+        val formattedChannelId = if (channelId.startsWith("messaging:")) {
+            channelId
+        } else {
+            "messaging:$channelId"
+        }
+
+        Log.d(TAG, "Creating notification with channelId: $formattedChannelId")
+
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("channelId", channelId)
+            // ✅ Thêm flags để clear stack và tạo task mới
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+            putExtra("channelId", formattedChannelId)
             putExtra("openChat", true)
+
+            // ✅ Thêm action để đảm bảo intent được xử lý như intent mới
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse("lovematch://chat/$formattedChannelId")
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -138,9 +158,11 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .build()
 
         notificationManager.notify(channelId.hashCode(), notification)
+        Log.d(TAG, "✅ Notification shown: $title")
     }
 
     private fun createNotificationChannel() {
@@ -157,6 +179,7 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
 
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "✅ Notification channel created")
         }
     }
 }
