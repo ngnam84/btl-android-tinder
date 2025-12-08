@@ -210,7 +210,7 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 }
             } else {
                 items(posts) { post ->
-                    PostCard(post = post, vm, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
+                    PostCard(post = post, vm, navController, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
                 }
             }
 

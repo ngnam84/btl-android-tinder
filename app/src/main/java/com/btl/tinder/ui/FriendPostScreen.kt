@@ -62,6 +62,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -84,10 +85,12 @@ import meshGradient
 @Composable
 fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
     val friendPosts by vm.friendPosts
+    val matchedUsers by vm.matchedUsers.collectAsState() // Collect all matched users
     val inProgress = vm.inProgress.value
 
     LaunchedEffect(Unit) {
         vm.fetchFriendPosts()
+        vm.fetchMatchedUsers() // Fetch all matched users
     }
 
     val animatedPoint = remember { Animatable(.8f) }
@@ -129,43 +132,65 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                 )
                 .statusBarsPadding()
         ) {
-            if (inProgress && friendPosts.isEmpty()) {
+            if (inProgress && friendPosts.isEmpty() && matchedUsers.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color.White)
                 }
-            } else {
-                // Horizontal list of friend avatars
-                val uniqueFriends = remember(friendPosts) {
-                    friendPosts
-                        .map { UserData(userId = it.userId, username = it.username, imageUrl = it.userImage) }
-                        .distinctBy { it.userId }
+            } else if (matchedUsers.isEmpty()) { // If no matches at all
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "You haven't matched with anyone yet. Keep swiping to see their posts!",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp),
+                        fontFamily = playpenFontFamily
+                    )
                 }
-
-                if (uniqueFriends.isNotEmpty()) {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
-                    ) {
-                        items(uniqueFriends, key = { it.userId!! }) { friend ->
-                            FriendAvatar(friend = friend)
-                        }
+            } else { // Matched users exist
+                // Horizontal list of friend avatars (all matched users)
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(matchedUsers, key = { it.userId!! }) { friend ->
+                        FriendAvatar(friend = friend)
                     }
                 }
                 
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
-                ) {
-                    items(friendPosts, key = { it.postId!! }) { post ->
-                        PostCard(
-                            post = post,
-                            vm = vm,
-                            navController = navController,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                if (friendPosts.isEmpty()) { // Matched users exist, but no posts yet
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "You've matched with friends, but they haven't posted anything yet!",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp),
+                            fontFamily = playpenFontFamily
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
+                    ) {
+                        items(friendPosts, key = { it.postId!! }) { post ->
+                            PostCard(
+                                post = post,
+                                vm = vm,
+                                navController = navController,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -380,7 +405,8 @@ fun PostCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = Color.White,
-                    modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
+                    modifier = Modifier.padding(start = 12.dp, bottom = 12.dp),
+                    fontFamily = playpenFontFamily
                 )
             }
 
@@ -438,7 +464,8 @@ fun CommentsSection(
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
             color = Color.White,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 8.dp),
+            fontFamily = playpenFontFamily
         )
 
         Row(
@@ -449,7 +476,7 @@ fun CommentsSection(
             androidx.compose.material3.OutlinedTextField(
                 value = commentInput,
                 onValueChange = onCommentInputChange,
-                label = { Text("Add a comment...", color = Color.Gray) },
+                label = { Text("Add a comment...", color = Color.Gray, fontFamily = playpenFontFamily) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp),
@@ -473,7 +500,12 @@ fun CommentsSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         if (comments.isEmpty()) {
-            Text(text = "No comments yet.", color = Color.Gray, fontSize = 14.sp)
+            Text(
+                text = "No comments yet.",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                fontFamily = playpenFontFamily
+            )
         } else {
             comments.forEach { comment ->
                 CommentItem(comment = comment)
@@ -503,7 +535,8 @@ fun CommentItem(comment: CommentData) {
                     text = comment.username ?: "Anonymous",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = Color.White
+                    color = Color.White,
+                    fontFamily = playpenFontFamily
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 comment.timestamp?.let {
@@ -517,7 +550,8 @@ fun CommentItem(comment: CommentData) {
             Text(
                 text = comment.text.toString(),
                 color = Color.White,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontFamily = playpenFontFamily
             )
         }
     }

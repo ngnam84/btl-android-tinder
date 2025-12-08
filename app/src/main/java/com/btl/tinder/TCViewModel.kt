@@ -81,7 +81,10 @@ class TCViewModel @Inject constructor(
     val profileDetailPosts = mutableStateOf<List<PostData>>(listOf())
     val friendPosts = mutableStateOf<List<PostData>>(listOf())
     val inProgressComments = mutableStateOf(false)
-    // Removed global _comments and comments, now handled per-post via getCommentsFlow
+    
+    // New state for all matched users
+    private val _matchedUsers = MutableStateFlow<List<UserData>>(emptyList())
+    val matchedUsers = _matchedUsers.asStateFlow()
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
@@ -482,6 +485,8 @@ class TCViewModel @Inject constructor(
 
                     if (user != null) {
                         connectToStream(uid)
+                        // Call fetchMatchedUsers when user data is loaded
+                        fetchMatchedUsers()
                     }
                 }
             }
@@ -1062,6 +1067,29 @@ class TCViewModel @Inject constructor(
                 handleException(e, "Failed to fetch friend posts.")
             } finally {
                 inProgress.value = false
+            }
+        }
+    }
+
+    // New function to fetch all matched users
+    fun fetchMatchedUsers() {
+        viewModelScope.launch {
+            val currentUserMatches = userData.value?.matches
+            if (currentUserMatches.isNullOrEmpty()) {
+                _matchedUsers.value = emptyList()
+                return@launch
+            }
+
+            try {
+                val fetchedUsers = mutableListOf<UserData>()
+                currentUserMatches.forEach { userId ->
+                    val userDoc = db.collection(COLLECTION_USER).document(userId).get().await()
+                    userDoc.toObject<UserData>()?.let { fetchedUsers.add(it) }
+                }
+                _matchedUsers.value = fetchedUsers
+            } catch (e: Exception) {
+                handleException(e, "Failed to fetch matched users.")
+                _matchedUsers.value = emptyList()
             }
         }
     }
