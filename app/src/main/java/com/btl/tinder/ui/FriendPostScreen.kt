@@ -28,6 +28,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
@@ -59,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -208,7 +211,7 @@ fun PostCard(
     val isLiked = post.likes.contains(currentUser?.userId)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val comments by vm.getCommentsFlow(post.postId!!).collectAsState(initial = emptyList())
+    val comments by vm.getCommentsFlow(post.userId, post.postId!!).collectAsState(initial = emptyList())
     var commentInput by remember { mutableStateOf("") }
 
 
@@ -299,8 +302,8 @@ fun PostCard(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize()
-                    ) {
-                        val mediaItem = post.media[it]
+                    ) { page ->
+                        val mediaItem = post.media[page]
                         when (mediaItem.type) {
                             "image" -> {
                                 CommonImage(
@@ -383,13 +386,11 @@ fun PostCard(
 
             // Always show the comment section
             CommentsSection(
-                postId = post.postId!!,
                 comments = comments,
-                vm = vm,
                 commentInput = commentInput,
                 onCommentInputChange = { commentInput = it },
                 onCommentSend = {
-                    vm.postComment(post.postId, commentInput)
+                    vm.postComment(post.userId, post.postId!!, commentInput)
                     commentInput = ""
                 }
             )
@@ -426,9 +427,7 @@ fun VideoPlayer(url: String) {
 
 @Composable
 fun CommentsSection(
-    postId: String,
     comments: List<CommentData>,
-    vm: TCViewModel,
     commentInput: String,
     onCommentInputChange: (String) -> Unit,
     onCommentSend: () -> Unit
@@ -460,10 +459,15 @@ fun CommentsSection(
                     cursorColor = Color.White,
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White
-                )
+                ),
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = {
+                    if (commentInput.isNotBlank()) {
+                        onCommentSend()
+                    }
+                })
             )
             Spacer(modifier = Modifier.width(8.dp))
-            // Removed Share IconButton
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -511,7 +515,7 @@ fun CommentItem(comment: CommentData) {
                 }
             }
             Text(
-                text = comment.text!!,
+                text = comment.text.toString(),
                 color = Color.White,
                 fontSize = 14.sp
             )

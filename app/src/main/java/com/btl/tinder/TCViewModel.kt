@@ -1080,7 +1080,7 @@ class TCViewModel @Inject constructor(
         }
     }
 
-    fun postComment(postId: String, text: String) {
+    fun postComment(authorId: String, postId: String, text: String) {
         val currentUser = userData.value ?: return
         val comment = CommentData(
             text = text,
@@ -1089,15 +1089,15 @@ class TCViewModel @Inject constructor(
             userId = currentUser.userId,
             timestamp = Date()
         )
-        db.collection("posts").document(postId).collection("comments").add(comment)
+        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").add(comment)
             .addOnFailureListener { e ->
                 handleException(e, "Failed to post comment.")
             }
     }
 
-    fun getCommentsFlow(postId: String): Flow<List<CommentData>> = callbackFlow {
+    fun getCommentsFlow(authorId: String, postId: String): Flow<List<CommentData>> = callbackFlow {
         inProgressComments.value = true
-        val subscription = db.collection("posts").document(postId).collection("comments")
+        val subscription = db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments")
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
