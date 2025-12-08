@@ -24,8 +24,10 @@ import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.chat.android.client.ChatClient
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.atan2
@@ -47,7 +49,10 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import io.getstream.chat.android.models.Device
 import io.getstream.chat.android.models.PushProvider
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.joinAll
+import java.util.Date
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
@@ -75,6 +80,8 @@ class TCViewModel @Inject constructor(
     val posts = mutableStateOf<List<PostData>>(listOf())
     val profileDetailPosts = mutableStateOf<List<PostData>>(listOf())
     val friendPosts = mutableStateOf<List<PostData>>(listOf())
+    val inProgressComments = mutableStateOf(false)
+    // Removed global _comments and comments, now handled per-post via getCommentsFlow
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
@@ -1049,7 +1056,7 @@ class TCViewModel @Inject constructor(
 
                 allPosts.addAll(friendPostsDeferred!!.awaitAll().flatten())
 
-                friendPosts.value = allPosts.sortedBy { it.timestamp }
+                friendPosts.value = allPosts.sortedByDescending { it.timestamp }
 
             } catch (e: Exception) {
                 handleException(e, "Failed to fetch friend posts.")
@@ -1068,6 +1075,42 @@ class TCViewModel @Inject constructor(
             } else {
                 postRef.update("likes", FieldValue.arrayUnion(currentUserId)).await()
             }
+            // Refresh the posts to get the updated like count
+            fetchFriendPosts()
         }
+    }
+
+    fun postComment(postId: String, text: String) {
+        val currentUser = userData.value ?: return
+        val comment = CommentData(
+            text = text,
+            username = currentUser.username ?: currentUser.name,
+            userImage = currentUser.imageUrl,
+            userId = currentUser.userId,
+            timestamp = Date()
+        )
+        db.collection("posts").document(postId).collection("comments").add(comment)
+            .addOnFailureListener { e ->
+                handleException(e, "Failed to post comment.")
+            }
+    }
+
+    fun getCommentsFlow(postId: String): Flow<List<CommentData>> = callbackFlow {
+        inProgressComments.value = true
+        val subscription = db.collection("posts").document(postId).collection("comments")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    handleException(error, "Failed to fetch comments.")
+                    inProgressComments.value = false
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val comments = snapshot.documents.mapNotNull { it.toObject<CommentData>() }
+                    trySend(comments)
+                }
+                inProgressComments.value = false
+            }
+        awaitClose { subscription.remove() }
     }
 }
