@@ -54,8 +54,9 @@ import com.exyte.animatednavbar.animation.indendshape.shapeCornerRadius
 
 enum class BottomNavigationItem(val icon: Int, val navDestination: DestinationScreen, val index: Int) {
     SWIPE(R.drawable.baseline_swipe, DestinationScreen.Swipe, 0),
-    CHATLIST(R.drawable.tooltip_2_24px, DestinationScreen.ChatList, 1),
-    PROFILE(R.drawable.baseline_profile, DestinationScreen.Profile, 2)
+    FRIENDPOST(R.drawable.diversity_1_24px, DestinationScreen.FriendPostScreen, 1),
+    CHATLIST(R.drawable.tooltip_2_24px, DestinationScreen.ChatList, 2),
+    PROFILE(R.drawable.baseline_profile, DestinationScreen.Profile, 3)
 }
 
 @OptIn(ExperimentalGraphicsApi::class)

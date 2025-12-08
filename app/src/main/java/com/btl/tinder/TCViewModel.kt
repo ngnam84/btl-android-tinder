@@ -74,6 +74,7 @@ class TCViewModel @Inject constructor(
     val userData = mutableStateOf<UserData?>(null)
     val posts = mutableStateOf<List<PostData>>(listOf())
     val profileDetailPosts = mutableStateOf<List<PostData>>(listOf())
+    val friendPosts = mutableStateOf<List<PostData>>(listOf())
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
@@ -824,7 +825,7 @@ class TCViewModel @Inject constructor(
         db.collection("cities")
             .orderBy("city")
             .startAt(query)
-            .endAt(query + "\uf8ff")
+            .endAt(query + "")
             .limit(10)
             .get()
             .addOnSuccessListener { documents ->
@@ -1021,5 +1022,52 @@ class TCViewModel @Inject constructor(
                     profileDetailPosts.value = value.documents.mapNotNull { it.toObject<PostData>() }
                 }
             }
+    }
+
+    fun fetchFriendPosts() {
+        viewModelScope.launch {
+            inProgress.value = true
+            try {
+                val currentUser = userData.value
+                if (currentUser?.matches.isNullOrEmpty()) {
+                    friendPosts.value = emptyList()
+                    return@launch
+                }
+
+                val friendIds = currentUser.matches
+                val allPosts = mutableListOf<PostData>()
+
+                val friendPostsDeferred = friendIds?.map { friendId ->
+                    async {
+                        db.collection(COLLECTION_USER).document(friendId)
+                            .collection("posts")
+                            .get()
+                            .await()
+                            .documents.mapNotNull { it.toObject<PostData>() }
+                    }
+                }
+
+                allPosts.addAll(friendPostsDeferred!!.awaitAll().flatten())
+
+                friendPosts.value = allPosts.sortedBy { it.timestamp }
+
+            } catch (e: Exception) {
+                handleException(e, "Failed to fetch friend posts.")
+            } finally {
+                inProgress.value = false
+            }
+        }
+    }
+
+    fun onLikeDislikePost(post: PostData, currentUserId: String) {
+        viewModelScope.launch {
+            val postRef = db.collection(COLLECTION_USER).document(post.userId).collection("posts").document(post.postId)
+
+            if (post.likes.contains(currentUserId)) {
+                postRef.update("likes", FieldValue.arrayRemove(currentUserId)).await()
+            } else {
+                postRef.update("likes", FieldValue.arrayUnion(currentUserId)).await()
+            }
+        }
     }
 }

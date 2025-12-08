@@ -41,13 +41,14 @@ import android.util.Log
 sealed class DestinationScreen(val route: String) {
     object Splash : DestinationScreen("splash")
     object Signup : DestinationScreen("signup")
-    object FTSetup : DestinationScreen("ftsetup")
+    object FTSetup : DestinationScreen("ftSetup")
     object Login : DestinationScreen("login")
     object Profile : DestinationScreen("profile")
     object Swipe : DestinationScreen("swipe")
     object ChatList : DestinationScreen("chatList")
     object CreatePost : DestinationScreen("createPost")
     object EditProfileScreen : DestinationScreen("editProfile")
+    object FriendPostScreen : DestinationScreen("friendPostScreen")
     object ProfileDetail : DestinationScreen("profileDetail/{userId}") {
         fun createRoute(userId: String?) = "profileDetail/$userId"
     }
@@ -156,6 +157,10 @@ fun SwipeAppNavigation() {
 
         composable(DestinationScreen.CreatePost.route) {
             CreatePostScreen(navController, vm)
+        }
+
+        composable(DestinationScreen.FriendPostScreen.route) {
+            FriendPostScreen(navController, vm)
         }
 
         composable(
