@@ -12,6 +12,7 @@ import com.btl.tinder.data.*
 import com.btl.tinder.ui.Gender
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Firebase
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -46,6 +47,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import io.getstream.chat.android.models.Device
 import io.getstream.chat.android.models.PushProvider
+import kotlinx.coroutines.joinAll
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
@@ -190,6 +192,105 @@ class TCViewModel @Inject constructor(
                 handleException(it, "Login failed")
                 inProgress.value = false
             }
+    }
+    fun changePassword(currentPassword: String, newPassword: String, confirmNewPassword: String) {
+        if (newPassword != confirmNewPassword) {
+            handleException(customMessage = "New passwords do not match")
+            return
+        }
+
+        if (newPassword.length < 6) {
+            handleException(customMessage = "New password must be at least 6 characters")
+            return
+        }
+
+        inProgress.value = true
+        val user = auth.currentUser
+        if (user != null && user.email != null) {
+            val credential = EmailAuthProvider.getCredential(user.email!!, currentPassword)
+            user.reauthenticate(credential)
+                .addOnCompleteListener { reauthTask ->
+                    if (reauthTask.isSuccessful) {
+                        user.updatePassword(newPassword)
+                            .addOnCompleteListener { updateTask ->
+                                if (updateTask.isSuccessful) {
+                                    popupNotification.value = Event("Password updated successfully")
+                                    inProgress.value = false
+                                } else {
+                                    handleException(updateTask.exception, "Failed to update password")
+                                }
+                            }
+                    } else {
+                        handleException(reauthTask.exception, "Re-authentication failed")
+                    }
+                }
+        } else {
+            handleException(customMessage = "User not found")
+        }
+    }
+
+    fun deleteAccount(password: String, onAccountDeleted: () -> Unit) {
+        inProgress.value = true
+        val user = auth.currentUser
+        if (user == null || user.email == null) {
+            handleException(customMessage = "User not logged in or email is missing.")
+            return
+        }
+
+        val credential = EmailAuthProvider.getCredential(user.email!!, password)
+
+        // Re-authenticate user before deleting
+        user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
+            if (reauthTask.isSuccessful) {
+                viewModelScope.launch {
+                    try {
+                        val uid = user.uid
+                        val userDoc = userData.value
+
+                        // 1. Delete all media from Storage
+                        val storageDeletions = mutableListOf<Job>()
+
+                        // Delete profile picture
+                        userDoc?.imageUrl?.let {
+                            if (it.isNotBlank()) {
+                                storageDeletions.add(launch { storage.getReferenceFromUrl(it).delete().await() })
+                            }
+                        }
+                        // Delete all post media
+                        posts.value.forEach { post ->
+                            post.media.forEach { media ->
+                                storageDeletions.add(launch { storage.getReferenceFromUrl(media.url).delete().await() })
+                            }
+                        }
+                        storageDeletions.joinAll()
+
+                        // 2. Delete all posts sub-collection documents
+                        val postsCollection = db.collection(COLLECTION_USER).document(uid).collection("posts")
+                        val allPosts = postsCollection.get().await()
+                        for (postDoc in allPosts.documents) {
+                            postsCollection.document(postDoc.id).delete().await()
+                        }
+
+                        // 3. Delete user document from Firestore
+                        db.collection(COLLECTION_USER).document(uid).delete().await()
+
+                        // 4. Delete user from Auth
+                        user.delete().await()
+
+                        popupNotification.value = Event("Account deleted successfully.")
+                        onLogout() // Disconnects from Stream, signs out, and clears local data
+                        onAccountDeleted()
+
+                    } catch (e: Exception) {
+                        handleException(e, "Failed to delete account.")
+                    } finally {
+                        inProgress.value = false
+                    }
+                }
+            } else {
+                handleException(reauthTask.exception, "Re-authentication failed. Please check your password.")
+            }
+        }
     }
 
     private fun connectToStream(userId: String, username: String? = null) {

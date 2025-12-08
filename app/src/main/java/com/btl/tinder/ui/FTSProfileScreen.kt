@@ -469,9 +469,10 @@ fun CityAutocompleteTextField(
             },
             label = { Text("City", fontFamily = deliusFontFamily, color = Color.Black) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Black, unfocusedBorderColor = Color.Black, cursorColor = Color.Black,
-                focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Gray
+                focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Black
             )
         )
 
