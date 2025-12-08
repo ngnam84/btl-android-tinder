@@ -727,7 +727,7 @@ fun InterestsSelector(
         }
     }
 
-    Column(modifier = Modifier.padding(8.dp).fillMaxWidth()) {
+    Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp).fillMaxWidth()) {
         Text("Interests", fontFamily = deliusFontFamily, color = Color.Black)
 
         Spacer(Modifier.height(8.dp))
