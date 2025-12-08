@@ -796,7 +796,7 @@ class TCViewModel @Inject constructor(
 
                 channel.sendMessage(
                     message = io.getstream.chat.android.models.Message(
-                        text = "🎉 You matched! Say hi and start chatting!"
+                        text = "Hey ${matchedUser.name}! We matched! 💕 I'd love to chat and get to know you better! 😊"
                     )
                 ).enqueue { msgResult ->
                     if (msgResult.isSuccess) {
