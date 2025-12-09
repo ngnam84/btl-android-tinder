@@ -423,19 +423,25 @@ class TCViewModel @Inject constructor(
         ftsComplete: Boolean? = null
     ) {
         val uid = auth.currentUser?.uid
+        val currentProfile = userData.value // Get the current user data
+
         val userData = UserData(
             userId = uid,
-            name = name ?: userData.value?.name,
-            username = username ?: userData.value?.username,
-            imageUrl = imageUrl ?: userData.value?.imageUrl,
-            bio = bio ?: userData.value?.bio,
-            gender = gender?.toString() ?: userData.value?.gender,
-            genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference,
-            interests = interests ?: userData.value?.interests ?: listOf(),
-            address = address,
-            lat = lat,
-            long = long,
-            ftsComplete = ftsComplete ?: userData.value?.ftsComplete ?: false
+            name = name ?: currentProfile?.name,
+            username = username ?: currentProfile?.username,
+            imageUrl = imageUrl ?: currentProfile?.imageUrl,
+            bio = bio ?: currentProfile?.bio,
+            gender = gender?.toString() ?: currentProfile?.gender,
+            genderPreference = genderPreference?.toString() ?: currentProfile?.genderPreference,
+            interests = interests ?: currentProfile?.interests ?: listOf(),
+            address = address ?: currentProfile?.address,
+            lat = lat ?: currentProfile?.lat,
+            long = long ?: currentProfile?.long,
+            ftsComplete = ftsComplete ?: currentProfile?.ftsComplete ?: false,
+            // Preserve existing match and swipe data
+            swipesLeft = currentProfile?.swipesLeft ?: listOf(),
+            swipesRight = currentProfile?.swipesRight ?: listOf(),
+            matches = currentProfile?.matches ?: listOf()
         )
 
         uid?.let {
@@ -967,7 +973,8 @@ class TCViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 handleException(e, "Failed to create post.")
-            } finally {
+            }
+            finally {
                 inProgress.value = false
             }
         }
@@ -1000,7 +1007,8 @@ class TCViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 handleException(e, "Failed to delete post.")
-            } finally {
+            }
+            finally {
                 inProgress.value = false
             }
         }
@@ -1063,9 +1071,11 @@ class TCViewModel @Inject constructor(
 
                 friendPosts.value = allPosts.sortedByDescending { it.timestamp }
 
-            } catch (e: Exception) {
+            }
+            catch (e: Exception) {
                 handleException(e, "Failed to fetch friend posts.")
-            } finally {
+            }
+            finally {
                 inProgress.value = false
             }
         }

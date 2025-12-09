@@ -1,11 +1,15 @@
 package com.btl.tinder.ui
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,19 +18,29 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import com.btl.tinder.CommonImage
 import com.btl.tinder.TCViewModel
+import com.btl.tinder.data.PostData
+import com.btl.tinder.formatTimestamp
 import com.btl.tinder.ui.theme.deliusFontFamily
 import com.btl.tinder.ui.theme.playpenFontFamily
 
@@ -210,7 +224,7 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 }
             } else {
                 items(posts) { post ->
-                    PostCard(post = post, vm, navController, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
+                    ProfilePostCard(post = post, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
                 }
             }
 
@@ -256,3 +270,116 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
         }
     }
 }
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ProfilePostCard(
+    post: PostData,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CommonImage(
+                    data = post.userImage,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = post.username,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = playpenFontFamily
+                    )
+                    post.timestamp?.let {
+                        Text(
+                            text = formatTimestamp(it),
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            if (!post.caption.isNullOrEmpty()) {
+                Text(
+                    text = post.caption,
+                    color = Color.White,
+                    fontFamily = playpenFontFamily,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                )
+            }
+
+            if (post.media.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .background(Color.Black)
+                ) {
+                    val pagerState = rememberPagerState(pageCount = { post.media.size })
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val mediaItem = post.media[page]
+                        when (mediaItem.type) {
+                            "image" -> {
+                                CommonImage(
+                                    data = mediaItem.url,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            "video" -> {
+                                VideoPlayer(url = mediaItem.url)
+                            }
+                            else -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(Color.DarkGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "Unsupported media type", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+
+                    if (pagerState.pageCount > 1) {
+                        Row(
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            repeat(pagerState.pageCount) { iteration ->
+                                val color = if (pagerState.currentPage == iteration) Color.White else Color.Gray.copy(alpha = 0.5f)
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

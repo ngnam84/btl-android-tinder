@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
@@ -41,6 +42,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -165,7 +167,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                         FriendAvatar(friend = friend)
                     }
                 }
-                
+
                 if (friendPosts.isEmpty()) { // Matched users exist, but no posts yet
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -301,8 +303,13 @@ fun PostCard(
                 }
 
                 if (post.userId == currentUser?.userId) {
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options", tint = Color.Gray)
+                    Box(
+                        modifier = Modifier
+                            .background(Color.Black.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Delete post", tint = Color.White)
+                        }
                     }
                 }
             }
@@ -377,9 +384,10 @@ fun PostCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val likesCount = post.likes.size
                 IconButton(onClick = {
                     currentUser?.userId?.let { userId ->
                         vm.onLikeDislikePost(post, userId)
@@ -388,29 +396,27 @@ fun PostCard(
                     Icon(
                         imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Like",
-                        tint = if (isLiked) Color.Red else Color.Gray
+                        tint = if (isLiked) Color(0xFFFF7898) else Color.Gray
                     )
                 }
-                IconButton(onClick = { /* Comment section is always shown now, no toggle needed */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Comment,
-                        contentDescription = "Comment",
-                        tint = Color.Gray
+                if (likesCount > 0) {
+                    val likesText = if (likesCount > 1) "$likesCount likes" else "1 like"
+                    Text(
+                        text = likesText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 4.dp),
+                        fontFamily = playpenFontFamily
                     )
                 }
             }
 
-            if (post.likes.isNotEmpty()) {
-                val likesCount = post.likes.size
-                Text(
-                    text = "$likesCount ${if (likesCount > 1) "likes" else "like"}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = Color.White,
-                    modifier = Modifier.padding(start = 12.dp, bottom = 12.dp),
-                    fontFamily = playpenFontFamily
-                )
-            }
+            Divider(
+                color = Color.Gray.copy(alpha = 0.3f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
 
             // Always show the comment section
             CommentsSection(
@@ -601,7 +607,7 @@ fun CommentItem(comment: CommentData, vm: TCViewModel, post: PostData) {
         if (currentUser?.userId == comment.userId) {
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Default.Close,
                     contentDescription = "Delete comment",
                     tint = Color.Gray,
                     modifier = Modifier.size(20.dp)
