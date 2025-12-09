@@ -1110,18 +1110,27 @@ class TCViewModel @Inject constructor(
 
     fun postComment(authorId: String, postId: String, text: String) {
         val currentUser = userData.value ?: return
+        val commentId = db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document().id
         val comment = CommentData(
+            commentId = commentId,
             text = text,
             username = currentUser.username ?: currentUser.name,
             userImage = currentUser.imageUrl,
             userId = currentUser.userId,
             timestamp = Date()
         )
-        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").add(comment)
+        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document(commentId).set(comment)
             .addOnFailureListener { e ->
                 handleException(e, "Failed to post comment.")
             }
     }
+
+    fun deleteComment(authorId: String, postId: String, commentId: String) {
+        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document(commentId).delete()
+            .addOnSuccessListener { Log.d("TCViewModel", "Comment deleted successfully") }
+            .addOnFailureListener { e -> handleException(e, "Failed to delete comment.") }
+    }
+
 
     fun getCommentsFlow(authorId: String, postId: String): Flow<List<CommentData>> = callbackFlow {
         inProgressComments.value = true
@@ -1134,7 +1143,10 @@ class TCViewModel @Inject constructor(
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    val comments = snapshot.documents.mapNotNull { it.toObject<CommentData>() }
+                    val comments = snapshot.documents.mapNotNull { doc ->
+                        val comment = doc.toObject<CommentData>()
+                        comment?.copy(commentId = doc.id)
+                    }
                     trySend(comments)
                 }
                 inProgressComments.value = false

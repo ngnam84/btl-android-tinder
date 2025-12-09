@@ -32,9 +32,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -142,7 +144,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "You haven't matched with anyone yet. Keep swiping to see their posts!",
+                        text = "You haven\'t matched with anyone yet. Keep swiping to see their posts!",
                         color = Color.White,
                         fontSize = 18.sp,
                         textAlign = TextAlign.Center,
@@ -170,7 +172,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "You've matched with friends, but they haven't posted anything yet!",
+                            text = "You\'ve matched with friends, but they haven\'t posted anything yet!",
                             color = Color.White,
                             fontSize = 18.sp,
                             textAlign = TextAlign.Center,
@@ -418,7 +420,9 @@ fun PostCard(
                 onCommentSend = {
                     vm.postComment(post.userId, post.postId!!, commentInput)
                     commentInput = ""
-                }
+                },
+                vm = vm,
+                post = post
             )
         }
     }
@@ -456,7 +460,9 @@ fun CommentsSection(
     comments: List<CommentData>,
     commentInput: String,
     onCommentInputChange: (String) -> Unit,
-    onCommentSend: () -> Unit
+    onCommentSend: () -> Unit,
+    vm: TCViewModel,
+    post: PostData
 ) {
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
         Text(
@@ -487,6 +493,17 @@ fun CommentsSection(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White
                 ),
+                trailingIcon = {
+                    if (commentInput.isNotBlank()) {
+                        IconButton(onClick = onCommentSend) {
+                            Icon(
+                                imageVector = Icons.Default.Send,
+                                contentDescription = "Send Comment",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = {
                     if (commentInput.isNotBlank()) {
@@ -494,7 +511,6 @@ fun CommentsSection(
                     }
                 })
             )
-            Spacer(modifier = Modifier.width(8.dp))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -508,14 +524,42 @@ fun CommentsSection(
             )
         } else {
             comments.forEach { comment ->
-                CommentItem(comment = comment)
+                CommentItem(comment = comment, vm = vm, post = post)
             }
         }
     }
 }
 
 @Composable
-fun CommentItem(comment: CommentData) {
+fun CommentItem(comment: CommentData, vm: TCViewModel, post: PostData) {
+    val currentUser = vm.userData.value
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Comment") },
+            text = { Text("Are you sure you want to delete this comment?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (comment.commentId != null) {
+                            vm.deleteComment(post.userId, post.postId!!, comment.commentId!!)
+                        }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -529,7 +573,7 @@ fun CommentItem(comment: CommentData) {
                 .clip(CircleShape)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = comment.username ?: "Anonymous",
@@ -553,6 +597,16 @@ fun CommentItem(comment: CommentData) {
                 fontSize = 14.sp,
                 fontFamily = playpenFontFamily
             )
+        }
+        if (currentUser?.userId == comment.userId) {
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete comment",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
