@@ -63,12 +63,31 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        Log.d(TAG, "🔥 Message received from Stream")
+        Log.d(TAG, "🔥 Message received")
+        Log.d(TAG, "📦 Message data: ${message.data}")
 
         try {
+            // ✅ CHỈ HIỂN THỊ NOTIFICATION KHI APP Ở BACKGROUND
+            if (isAppInForeground()) {
+                Log.d(TAG, "⚠️ App is in foreground - NOT showing notification")
+                return
+            }
+
+            Log.d(TAG, "✅ App is in background - showing notification")
             handleStreamNotification(message)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error handling notification", e)
+        }
+    }
+
+    // ✅ HÀM MỚI: Kiểm tra app có đang chạy foreground không
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val runningAppProcesses = activityManager.runningAppProcesses ?: return false
+
+        return runningAppProcesses.any { processInfo ->
+            processInfo.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                    processInfo.processName == packageName
         }
     }
 
@@ -78,16 +97,12 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
         var messageText = "New message"
         var senderImage: String? = null
 
-        // ✅ Lấy channelId
         channelId = message.data["channel_id"]
             ?: message.data["cid"]
                     ?: channelId
 
-        // ✅ Lấy message text từ "body"
         messageText = message.data["body"] ?: messageText
 
-        // ✅ Parse tên người gửi từ "title"
-        // Format: "New message from Vanessa Doofenshmirtz"
         message.data["title"]?.let { title ->
             senderName = if (title.startsWith("New message from ")) {
                 title.removePrefix("New message from ")
@@ -96,7 +111,6 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
             }
         }
 
-        // ✅ Lấy sender image nếu có
         senderImage = message.data["sender_image"]
             ?: message.data["image"]
 
@@ -118,9 +132,6 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
     ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // ✅ SỬA: Format channelId đúng cho intent
-        // Nếu channelId có format "jXtkL0drp3d69H6nyo7twie26xh2-q3ku5QLtiwfawy9PIApq3kLRgB82"
-        // thì cần thêm prefix "messaging:"
         val formattedChannelId = if (channelId.startsWith("messaging:")) {
             channelId
         } else {
@@ -130,7 +141,6 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Creating notification with channelId: $formattedChannelId")
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            // ✅ Thêm flags để clear stack và tạo task mới
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -138,7 +148,6 @@ class TCFirebaseMessagingService : FirebaseMessagingService() {
             putExtra("channelId", formattedChannelId)
             putExtra("openChat", true)
 
-            // ✅ Thêm action để đảm bảo intent được xử lý như intent mới
             action = Intent.ACTION_VIEW
             data = android.net.Uri.parse("lovematch://chat/$formattedChannelId")
         }

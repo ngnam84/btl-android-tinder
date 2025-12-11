@@ -12,6 +12,7 @@ import com.btl.tinder.data.*
 import com.btl.tinder.ui.Gender
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Firebase
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,8 +24,10 @@ import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.getstream.chat.android.client.ChatClient
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.atan2
@@ -46,6 +49,10 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import io.getstream.chat.android.models.Device
 import io.getstream.chat.android.models.PushProvider
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.joinAll
+import java.util.Date
 
 enum class SignInState {
     SIGNED_IN_FROM_LOGIN,
@@ -72,6 +79,12 @@ class TCViewModel @Inject constructor(
     val userData = mutableStateOf<UserData?>(null)
     val posts = mutableStateOf<List<PostData>>(listOf())
     val profileDetailPosts = mutableStateOf<List<PostData>>(listOf())
+    val friendPosts = mutableStateOf<List<PostData>>(listOf())
+    val inProgressComments = mutableStateOf(false)
+    
+    // New state for all matched users
+    private val _matchedUsers = MutableStateFlow<List<UserData>>(emptyList())
+    val matchedUsers = _matchedUsers.asStateFlow()
 
     val matchProfiles = mutableStateOf<List<UserMatch>>(listOf())
     val inProgressProfiles = mutableStateOf(false)
@@ -190,6 +203,123 @@ class TCViewModel @Inject constructor(
                 handleException(it, "Login failed")
                 inProgress.value = false
             }
+    }
+
+    fun onForgotPassword(email: String) {
+        if (email.isEmpty()) {
+            handleException(customMessage = "Please enter your email address.")
+            return
+        }
+        inProgress.value = true
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                inProgress.value = false
+                if (task.isSuccessful) {
+                    popupNotification.value = Event("A password reset link has been sent to your email.")
+                } else {
+                    handleException(task.exception, "Failed to send password reset email.")
+                }
+            }
+    }
+
+    fun changePassword(currentPassword: String, newPassword: String, confirmNewPassword: String) {
+        if (newPassword != confirmNewPassword) {
+            handleException(customMessage = "New passwords do not match")
+            return
+        }
+
+        if (newPassword.length < 6) {
+            handleException(customMessage = "New password must be at least 6 characters")
+            return
+        }
+
+        inProgress.value = true
+        val user = auth.currentUser
+        if (user != null && user.email != null) {
+            val credential = EmailAuthProvider.getCredential(user.email!!, currentPassword)
+            user.reauthenticate(credential)
+                .addOnCompleteListener { reauthTask ->
+                    if (reauthTask.isSuccessful) {
+                        user.updatePassword(newPassword)
+                            .addOnCompleteListener { updateTask ->
+                                if (updateTask.isSuccessful) {
+                                    popupNotification.value = Event("Password updated successfully")
+                                    inProgress.value = false
+                                } else {
+                                    handleException(updateTask.exception, "Failed to update password")
+                                }
+                            }
+                    } else {
+                        handleException(reauthTask.exception, "Re-authentication failed")
+                    }
+                }
+        } else {
+            handleException(customMessage = "User not found")
+        }
+    }
+
+    fun deleteAccount(password: String, onAccountDeleted: () -> Unit) {
+        inProgress.value = true
+        val user = auth.currentUser
+        if (user == null || user.email == null) {
+            handleException(customMessage = "User not logged in or email is missing.")
+            return
+        }
+
+        val credential = EmailAuthProvider.getCredential(user.email!!, password)
+
+        // Re-authenticate user before deleting
+        user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
+            if (reauthTask.isSuccessful) {
+                viewModelScope.launch {
+                    try {
+                        val uid = user.uid
+                        val userDoc = userData.value
+
+                        // 1. Delete all media from Storage
+                        val storageDeletions = mutableListOf<Job>()
+
+                        // Delete profile picture
+                        userDoc?.imageUrl?.let {
+                            if (it.isNotBlank()) {
+                                storageDeletions.add(launch { storage.getReferenceFromUrl(it).delete().await() })
+                            }
+                        }
+                        // Delete all post media
+                        posts.value.forEach { post ->
+                            post.media.forEach { media ->
+                                storageDeletions.add(launch { storage.getReferenceFromUrl(media.url).delete().await() })
+                            }
+                        }
+                        storageDeletions.joinAll()
+
+                        // 2. Delete all posts sub-collection documents
+                        val postsCollection = db.collection(COLLECTION_USER).document(uid).collection("posts")
+                        val allPosts = postsCollection.get().await()
+                        for (postDoc in allPosts.documents) {
+                            postsCollection.document(postDoc.id).delete().await()
+                        }
+
+                        // 3. Delete user document from Firestore
+                        db.collection(COLLECTION_USER).document(uid).delete().await()
+
+                        // 4. Delete user from Auth
+                        user.delete().await()
+
+                        popupNotification.value = Event("Account deleted successfully.")
+                        onLogout() // Disconnects from Stream, signs out, and clears local data
+                        onAccountDeleted()
+
+                    } catch (e: Exception) {
+                        handleException(e, "Failed to delete account.")
+                    } finally {
+                        inProgress.value = false
+                    }
+                }
+            } else {
+                handleException(reauthTask.exception, "Re-authentication failed. Please check your password.")
+            }
+        }
     }
 
     private fun connectToStream(userId: String, username: String? = null) {
@@ -311,19 +441,25 @@ class TCViewModel @Inject constructor(
         ftsComplete: Boolean? = null
     ) {
         val uid = auth.currentUser?.uid
+        val currentProfile = userData.value // Get the current user data
+
         val userData = UserData(
             userId = uid,
-            name = name ?: userData.value?.name,
-            username = username ?: userData.value?.username,
-            imageUrl = imageUrl ?: userData.value?.imageUrl,
-            bio = bio ?: userData.value?.bio,
-            gender = gender?.toString() ?: userData.value?.gender,
-            genderPreference = genderPreference?.toString() ?: userData.value?.genderPreference,
-            interests = interests ?: userData.value?.interests ?: listOf(),
-            address = address,
-            lat = lat,
-            long = long,
-            ftsComplete = ftsComplete ?: userData.value?.ftsComplete ?: false
+            name = name ?: currentProfile?.name,
+            username = username ?: currentProfile?.username,
+            imageUrl = imageUrl ?: currentProfile?.imageUrl,
+            bio = bio ?: currentProfile?.bio,
+            gender = gender?.toString() ?: currentProfile?.gender,
+            genderPreference = genderPreference?.toString() ?: currentProfile?.genderPreference,
+            interests = interests ?: currentProfile?.interests ?: listOf(),
+            address = address ?: currentProfile?.address,
+            lat = lat ?: currentProfile?.lat,
+            long = long ?: currentProfile?.long,
+            ftsComplete = ftsComplete ?: currentProfile?.ftsComplete ?: false,
+            // Preserve existing match and swipe data
+            swipesLeft = currentProfile?.swipesLeft ?: listOf(),
+            swipesRight = currentProfile?.swipesRight ?: listOf(),
+            matches = currentProfile?.matches ?: listOf()
         )
 
         uid?.let {
@@ -373,6 +509,8 @@ class TCViewModel @Inject constructor(
 
                     if (user != null) {
                         connectToStream(uid)
+                        // Call fetchMatchedUsers when user data is loaded
+                        fetchMatchedUsers()
                     }
                 }
             }
@@ -695,7 +833,7 @@ class TCViewModel @Inject constructor(
 
                 channel.sendMessage(
                     message = io.getstream.chat.android.models.Message(
-                        text = "🎉 You matched! Say hi and start chatting!"
+                        text = "Hey ${matchedUser.name}! We matched! 💕 I'd love to chat and get to know you better! 😊"
                     )
                 ).enqueue { msgResult ->
                     if (msgResult.isSuccess) {
@@ -723,7 +861,7 @@ class TCViewModel @Inject constructor(
         db.collection("cities")
             .orderBy("city")
             .startAt(query)
-            .endAt(query + "\uf8ff")
+            .endAt(query + "")
             .limit(10)
             .get()
             .addOnSuccessListener { documents ->
@@ -853,7 +991,8 @@ class TCViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 handleException(e, "Failed to create post.")
-            } finally {
+            }
+            finally {
                 inProgress.value = false
             }
         }
@@ -886,7 +1025,8 @@ class TCViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 handleException(e, "Failed to delete post.")
-            } finally {
+            }
+            finally {
                 inProgress.value = false
             }
         }
@@ -920,5 +1060,125 @@ class TCViewModel @Inject constructor(
                     profileDetailPosts.value = value.documents.mapNotNull { it.toObject<PostData>() }
                 }
             }
+    }
+
+    fun fetchFriendPosts() {
+        viewModelScope.launch {
+            inProgress.value = true
+            try {
+                val currentUser = userData.value
+                if (currentUser?.matches.isNullOrEmpty()) {
+                    friendPosts.value = emptyList()
+                    return@launch
+                }
+
+                val friendIds = currentUser.matches
+                val allPosts = mutableListOf<PostData>()
+
+                val friendPostsDeferred = friendIds?.map { friendId ->
+                    async {
+                        db.collection(COLLECTION_USER).document(friendId)
+                            .collection("posts")
+                            .get()
+                            .await()
+                            .documents.mapNotNull { it.toObject<PostData>() }
+                    }
+                }
+
+                allPosts.addAll(friendPostsDeferred!!.awaitAll().flatten())
+
+                friendPosts.value = allPosts.sortedByDescending { it.timestamp }
+
+            }
+            catch (e: Exception) {
+                handleException(e, "Failed to fetch friend posts.")
+            }
+            finally {
+                inProgress.value = false
+            }
+        }
+    }
+
+    // New function to fetch all matched users
+    fun fetchMatchedUsers() {
+        viewModelScope.launch {
+            val currentUserMatches = userData.value?.matches
+            if (currentUserMatches.isNullOrEmpty()) {
+                _matchedUsers.value = emptyList()
+                return@launch
+            }
+
+            try {
+                val fetchedUsers = mutableListOf<UserData>()
+                currentUserMatches.forEach { userId ->
+                    val userDoc = db.collection(COLLECTION_USER).document(userId).get().await()
+                    userDoc.toObject<UserData>()?.let { fetchedUsers.add(it) }
+                }
+                _matchedUsers.value = fetchedUsers
+            } catch (e: Exception) {
+                handleException(e, "Failed to fetch matched users.")
+                _matchedUsers.value = emptyList()
+            }
+        }
+    }
+
+    fun onLikeDislikePost(post: PostData, currentUserId: String) {
+        viewModelScope.launch {
+            val postRef = db.collection(COLLECTION_USER).document(post.userId).collection("posts").document(post.postId)
+
+            if (post.likes.contains(currentUserId)) {
+                postRef.update("likes", FieldValue.arrayRemove(currentUserId)).await()
+            } else {
+                postRef.update("likes", FieldValue.arrayUnion(currentUserId)).await()
+            }
+            // Refresh the posts to get the updated like count
+            fetchFriendPosts()
+        }
+    }
+
+    fun postComment(authorId: String, postId: String, text: String) {
+        val currentUser = userData.value ?: return
+        val commentId = db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document().id
+        val comment = CommentData(
+            commentId = commentId,
+            text = text,
+            username = currentUser.username ?: currentUser.name,
+            userImage = currentUser.imageUrl,
+            userId = currentUser.userId,
+            timestamp = Date()
+        )
+        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document(commentId).set(comment)
+            .addOnFailureListener { e ->
+                handleException(e, "Failed to post comment.")
+            }
+    }
+
+    fun deleteComment(authorId: String, postId: String, commentId: String) {
+        db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments").document(commentId).delete()
+            .addOnSuccessListener { Log.d("TCViewModel", "Comment deleted successfully") }
+            .addOnFailureListener { e -> handleException(e, "Failed to delete comment.") }
+    }
+
+
+    fun getCommentsFlow(authorId: String, postId: String): Flow<List<CommentData>> = callbackFlow {
+        inProgressComments.value = true
+        val subscription = db.collection(COLLECTION_USER).document(authorId).collection("posts").document(postId).collection("comments")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    handleException(error, "Failed to fetch comments.")
+                    inProgressComments.value = false
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val comments = snapshot.documents.mapNotNull { doc ->
+                        val comment = doc.toObject<CommentData>()
+                        comment?.copy(commentId = doc.id)
+                    }
+                    trySend(comments)
+                }
+                inProgressComments.value = false
+            }
+        awaitClose { subscription.remove() }
     }
 }

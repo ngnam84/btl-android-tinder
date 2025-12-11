@@ -19,21 +19,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.btl.tinder.ui.*
-import com.btl.tinder.ui.AnimatedSplashScreen
-import com.btl.tinder.ui.ChatListScreen
-import com.btl.tinder.ui.CreatePostScreen
-import com.btl.tinder.ui.EditProfileScreen
-import com.btl.tinder.ui.FTSProfileScreen
-import com.btl.tinder.ui.LoginScreen
-import com.btl.tinder.ui.ProfileDetailScreen
-import com.btl.tinder.ui.ProfileScreen
-import com.btl.tinder.ui.SignupScreen
-import com.btl.tinder.ui.SwipeScreen
 import com.btl.tinder.ui.theme.TinderCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -41,13 +28,14 @@ import android.util.Log
 sealed class DestinationScreen(val route: String) {
     object Splash : DestinationScreen("splash")
     object Signup : DestinationScreen("signup")
-    object FTSetup : DestinationScreen("ftsetup")
+    object FTSetup : DestinationScreen("ftSetup")
     object Login : DestinationScreen("login")
     object Profile : DestinationScreen("profile")
     object Swipe : DestinationScreen("swipe")
     object ChatList : DestinationScreen("chatList")
     object CreatePost : DestinationScreen("createPost")
     object EditProfileScreen : DestinationScreen("editProfile")
+    object FriendPostScreen : DestinationScreen("friendPostScreen")
     object ProfileDetail : DestinationScreen("profileDetail/{userId}") {
         fun createRoute(userId: String?) = "profileDetail/$userId"
     }
@@ -58,7 +46,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Xử lý notification intent
         handleNotificationIntent(intent)
 
         setContent {
@@ -82,30 +69,12 @@ class MainActivity : ComponentActivity() {
         val openChat = intent.getBooleanExtra("openChat", false)
         val channelId = intent.getStringExtra("channelId")
 
-        Log.d("MainActivity", "handleNotificationIntent called")
-        Log.d("MainActivity", "openChat: $openChat, channelId: $channelId")
-
         if (openChat && !channelId.isNullOrEmpty()) {
-            Log.d("MainActivity", "Opening chat from notification: $channelId")
-
-            // ✅ SỬA: Thêm delay và kiểm tra lifecycle
             lifecycleScope.launch {
-                // Đợi UI ready
                 delay(1000)
-
                 try {
-                    // ✅ Format lại channelId nếu cần (thêm prefix "messaging:")
-                    val formattedChannelId = if (channelId.startsWith("messaging:")) {
-                        channelId
-                    } else {
-                        "messaging:$channelId"
-                    }
-
-                    Log.d("MainActivity", "Formatted channel ID: $formattedChannelId")
-
-                    startActivity(
-                        SingleChatScreen.getIntent(this@MainActivity, formattedChannelId)
-                    )
+                    val formattedChannelId = if (channelId.startsWith("messaging:")) channelId else "messaging:$channelId"
+                    startActivity(SingleChatScreen.getIntent(this@MainActivity, formattedChannelId))
                 } catch (e: Exception) {
                     Log.e("MainActivity", "Error opening chat", e)
                 }
@@ -120,7 +89,6 @@ fun SwipeAppNavigation() {
     val navController = rememberNavController()
     val vm = hiltViewModel<TCViewModel>()
 
-    // ✅ Request notification permission
     com.btl.tinder.utils.RequestNotificationPermission()
 
     NotificationMessage(vm = vm)
@@ -129,43 +97,34 @@ fun SwipeAppNavigation() {
         composable(DestinationScreen.Splash.route) {
             AnimatedSplashScreen(navController)
         }
-
         composable(DestinationScreen.Signup.route) {
             SignupScreen(navController, vm)
         }
-
         composable(DestinationScreen.FTSetup.route) {
             FTSProfileScreen(navController, vm)
         }
-
         composable(DestinationScreen.Login.route) {
             LoginScreen(navController, vm)
         }
-
         composable(DestinationScreen.Profile.route) {
             ProfileScreen(navController, vm)
         }
-
         composable(DestinationScreen.Swipe.route) {
             SwipeScreen(navController, vm)
         }
-
         composable(DestinationScreen.ChatList.route) {
             ChatListScreen(navController, vm)
         }
-
         composable(DestinationScreen.CreatePost.route) {
             CreatePostScreen(navController, vm)
         }
-
+        composable(DestinationScreen.FriendPostScreen.route) {
+            FriendPostScreen(navController, vm)
+        }
         composable(
             route = DestinationScreen.ProfileDetail.route,
             enterTransition = {
-                fadeIn(animationSpec = tween(200)) +
-                        scaleIn(
-                            initialScale = 0.92f,
-                            animationSpec = tween(240)
-                        )
+                fadeIn(animationSpec = tween(200)) + scaleIn(initialScale = 0.92f, animationSpec = tween(240))
             },
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
@@ -173,7 +132,6 @@ fun SwipeAppNavigation() {
                 ProfileDetailScreen(userId = it, navController = navController, vm = vm)
             }
         }
-
         composable(DestinationScreen.EditProfileScreen.route) {
             EditProfileScreen(navController, vm)
         }

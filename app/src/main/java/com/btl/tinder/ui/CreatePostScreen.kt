@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.BottomAppBar
@@ -70,9 +71,9 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
     val context = LocalContext.current
 
     val multipleMediaLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(10) 
+        contract = ActivityResultContracts.PickMultipleVisualMedia(10)
     ) { uris ->
-        selectedMedia = uris.mapNotNull { uri ->
+        val newMedia = uris.mapNotNull { uri ->
             val mimeType = context.contentResolver.getType(uri)
             when {
                 mimeType?.startsWith("image/") == true -> LocalMediaItem(uri, "image")
@@ -80,6 +81,7 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                 else -> null
             }
         }
+        selectedMedia = selectedMedia + newMedia // Append new media to the existing list
     }
 
     if (inProgress) {
@@ -184,7 +186,7 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                placeholder = { Text("What's on your mind?", color = Color.Gray) },
+                placeholder = { Text("What\'s on your mind?", color = Color.Gray) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -201,7 +203,6 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                 minLines = 5
             )
 
-            // ✅ SỬA: Thay thế LazyRow bằng FlowRow
             if (selectedMedia.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
@@ -210,12 +211,14 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    selectedMedia.forEach { mediaItem ->
-                        Box {
+                    selectedMedia.forEachIndexed { index, mediaItem ->
+                        Box(
+                            modifier = Modifier.size(100.dp)
+                        ) {
                             CommonImage(
                                 data = mediaItem.uri.toString(),
                                 modifier = Modifier
-                                    .size(100.dp) // Kích thước nhỏ hơn cho FlowRow
+                                    .fillMaxSize()
                                     .clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Crop
                             )
@@ -228,6 +231,26 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                                         .align(Alignment.Center)
                                         .size(32.dp)
                                         .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                                )
+                            }
+                            // Delete Button
+                            IconButton(
+                                onClick = {
+                                    val updatedMedia = selectedMedia.toMutableList()
+                                    updatedMedia.removeAt(index)
+                                    selectedMedia = updatedMedia
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(20.dp)
+                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Remove media",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }

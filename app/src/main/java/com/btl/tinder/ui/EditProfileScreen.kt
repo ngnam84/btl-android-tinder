@@ -1,4 +1,7 @@
 package com.btl.tinder.ui
+
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.Icon
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Add
@@ -150,6 +153,7 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
                     modifier = Modifier
                         .weight(1f),
                     vm=vm,
+                    navController = navController,
                     name=name,
                     username=username,
                     bio = bio,
@@ -203,6 +207,7 @@ fun EditProfileScreen(navController: NavController, vm: TCViewModel) {
 fun ProfileContent(
     modifier: Modifier,
     vm: TCViewModel,
+    navController: NavController,
     name: String,
     username: String,
     bio: String,
@@ -225,6 +230,93 @@ fun ProfileContent(
 ){
     val imageUrl = vm.userData.value?.imageUrl
     val scrollState = rememberScrollState()
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmNewPassword by remember { mutableStateOf("") }
+
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
+    var passwordForDelete by remember { mutableStateOf("") }
+
+    if (showChangePasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangePasswordDialog = false },
+            title = { Text("Change Password") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = { currentPassword = it },
+                        label = { Text("Current Password") },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password") },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    OutlinedTextField(
+                        value = confirmNewPassword,
+                        onValueChange = { confirmNewPassword = it },
+                        label = { Text("Confirm New Password") },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    vm.changePassword(currentPassword, newPassword, confirmNewPassword)
+                    showChangePasswordDialog = false
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showChangePasswordDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountDialog = false },
+            title = { Text("Delete Account?", color = Color.Red) },
+            text = {
+                Column {
+                    Text("This is permanent and cannot be undone. All your data, including matches and chats, will be deleted. Please enter your password to confirm.")
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = passwordForDelete,
+                        onValueChange = { passwordForDelete = it },
+                        label = { Text("Enter your password") },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                    vm.deleteAccount(passwordForDelete) {
+                        navigateTo(navController, DestinationScreen.Login.route)
+                    }
+                    showDeleteAccountDialog = false
+                 },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("DELETE", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteAccountDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
 
     Column(modifier = modifier
         .verticalScroll(scrollState)
@@ -261,7 +353,7 @@ fun ProfileContent(
                 unfocusedBorderColor = Color.Black,
                 cursorColor = Color.Black,
                 focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
+                unfocusedLabelColor = Color.Black,
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             )
@@ -280,7 +372,7 @@ fun ProfileContent(
                 unfocusedBorderColor = Color.Black,
                 cursorColor = Color.Black,
                 focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
+                unfocusedLabelColor = Color.Black,
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             )
@@ -300,7 +392,7 @@ fun ProfileContent(
                 unfocusedBorderColor = Color.Black,
                 cursorColor = Color.Black,
                 focusedLabelColor = Color.Black,
-                unfocusedLabelColor = Color.Gray,
+                unfocusedLabelColor = Color.Black,
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             )
@@ -442,7 +534,41 @@ fun ProfileContent(
         Button(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(vertical = 8.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(25.dp),
+            contentPadding = PaddingValues(),
+            onClick = { showChangePasswordDialog = true }
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF744D8C),
+                                Color(0xFF9C27B0)
+                            )
+                        ),
+                        shape = RoundedCornerShape(25.dp)
+                    )
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Change Password",
+                    color = Color.White,
+                    fontFamily = deliusFontFamily,
+                    fontWeight = FontWeight.W600,
+                    fontSize = 18.sp
+                )
+            }
+        }
+
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             shape = RoundedCornerShape(25.dp),
@@ -465,6 +591,42 @@ fun ProfileContent(
             ) {
                 Text(
                     text = "Logout",
+                    color = Color.White,
+                    fontFamily = deliusFontFamily,
+                    fontWeight = FontWeight.W600,
+                    fontSize = 18.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(25.dp),
+            contentPadding = PaddingValues(),
+            onClick = { showDeleteAccountDialog = true }
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Red.copy(alpha = 0.6f),
+                                Color(0xFF9F2929)
+                            )
+                        ),
+                        shape = RoundedCornerShape(25.dp)
+                    )
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Delete Account",
                     color = Color.White,
                     fontFamily = deliusFontFamily,
                     fontWeight = FontWeight.W600,
@@ -565,8 +727,8 @@ fun InterestsSelector(
         }
     }
 
-    Column(modifier = Modifier.padding(8.dp)) {
-        Text("Interests", fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
+    Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp).fillMaxWidth()) {
+        Text("Interests", fontFamily = deliusFontFamily, color = Color.Black)
 
         Spacer(Modifier.height(8.dp))
 
@@ -578,25 +740,25 @@ fun InterestsSelector(
                 validationResult = null
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Input name of interest", fontFamily = deliusFontFamily, color = Color.Gray) },
+            placeholder = { Text("Input name of interest", fontFamily = deliusFontFamily, color = Color.Black) },
             leadingIcon = {
-                Icon(androidx.compose.material.icons.Icons.Default.Search, null, tint = Color(0xFFFF789B))
+                Icon(androidx.compose.material.icons.Icons.Default.Search, null, tint = Color.Black)
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Close, null, tint = Color(0xFFFF789B))
+                        Icon(androidx.compose.material.icons.Icons.Default.Close, null, tint = Color.Black)
                     }
                 }
             },
             singleLine = true,
             textStyle = TextStyle(fontFamily = deliusFontFamily, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFFF789B),
-                unfocusedBorderColor = Color(0xFF744D8C),
-                cursorColor = Color(0xFFFF789B),
-                focusedLabelColor = Color(0xFFFF789B),
-                unfocusedLabelColor = Color.Gray,
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Black,
+                cursorColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             )
@@ -634,7 +796,7 @@ fun InterestsSelector(
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(interest.name, fontWeight = FontWeight.Bold, fontFamily = deliusFontFamily, color = Color.Black)
-                                    Text(interest.category, fontSize = 12.sp, color = Color.Gray, fontFamily = deliusFontFamily)
+                                    Text(interest.category, fontSize = 12.sp, color = Color.Black, fontFamily = deliusFontFamily)
                                 }
                             }
                             CommonDivider()

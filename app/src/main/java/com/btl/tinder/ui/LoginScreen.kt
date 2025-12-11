@@ -198,6 +198,17 @@ fun LoginScreen(navController: NavController, vm: TCViewModel) {
                 }
             }
 
+            Text(
+                text = "Forgot Password?",
+                color = Color.Black,
+                fontFamily = deliusFontFamily,
+                fontWeight = FontWeight.W700,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .padding(top = 16.dp)
+                    .clickable { vm.onForgotPassword(emailState.value.text) }
+            )
+
             Text(text = "New here? Go to signup",
                 color = Color.Black,
                 fontFamily = deliusFontFamily,
