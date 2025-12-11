@@ -248,6 +248,7 @@ fun SignupScreen(navController: NavController, vm: TCViewModel) {
                 fontWeight = FontWeight.W700,
                 modifier = Modifier
                     .padding(8.dp)
+                    .padding(top = 16.dp)
                     .clickable {
                         navigateTo(navController, DestinationScreen.Login.route)
                     }

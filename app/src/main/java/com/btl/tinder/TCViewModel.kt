@@ -204,6 +204,24 @@ class TCViewModel @Inject constructor(
                 inProgress.value = false
             }
     }
+
+    fun onForgotPassword(email: String) {
+        if (email.isEmpty()) {
+            handleException(customMessage = "Please enter your email address.")
+            return
+        }
+        inProgress.value = true
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                inProgress.value = false
+                if (task.isSuccessful) {
+                    popupNotification.value = Event("A password reset link has been sent to your email.")
+                } else {
+                    handleException(task.exception, "Failed to send password reset email.")
+                }
+            }
+    }
+
     fun changePassword(currentPassword: String, newPassword: String, confirmNewPassword: String) {
         if (newPassword != confirmNewPassword) {
             handleException(customMessage = "New passwords do not match")
