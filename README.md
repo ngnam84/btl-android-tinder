@@ -12,4 +12,5 @@ Trong bối cảnh công nghệ phát triển mạnh mẽ và thời gian dành 
 
 Tổng quát về ứng dụng:
 <img width="2613" height="1630" alt="mermaid-diagram-2025-12-12-094110" src="https://github.com/user-attachments/assets/aebbeba9-976c-45dd-813a-6aec0a065a6d" />
-[Screen_recording_20251212_091253.webm](https://github.com/user-attachments/assets/3be831aa-8b5b-49fb-9110-422c9e131479)
+
+![Screen_recording_20251212_091042 (1)](https://github.com/user-attachments/assets/0d5e289a-f73d-4f25-b0b3-0933b49d718b)
