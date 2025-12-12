@@ -47,10 +47,10 @@
         <activity
                 android:name=".ui.VideoCallScreen"
                 android:exported="false"
-                android:screenOrientation="portrait"
-                android:theme="@style/Theme.BtlAndroidTinder" />
+                android:theme="@style/Theme.BtlAndroidTinder"
+                android:supportsPictureInPicture="true"
+                android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
 
-        <!-- Firebase Messaging Service -->
         <service
                 android:name=".messaging.TCFirebaseMessagingService"
                 android:exported="false">
