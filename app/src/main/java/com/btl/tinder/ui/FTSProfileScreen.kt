@@ -66,17 +66,15 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
         )
     }
 
-    // Hoisted state for the form fields
     var name by rememberSaveable { mutableStateOf("") }
     var bio by rememberSaveable { mutableStateOf("") }
     var gender by rememberSaveable { mutableStateOf(Gender.MALE) }
     var genderPreference by rememberSaveable { mutableStateOf(Gender.FEMALE) }
     var selectedCity by remember { mutableStateOf<CityData?>(null) }
-    var cityInput by rememberSaveable { mutableStateOf("") } // Added cityInput state
+    var cityInput by rememberSaveable { mutableStateOf("") }
     var interests by rememberSaveable { mutableStateOf(listOf<String>()) }
 
-    val coroutineScope = rememberCoroutineScope() // Obtain a CoroutineScope
-
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -161,10 +159,10 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                     vm = vm,
                     onCitySelected = {
                         selectedCity = it
-                        cityInput = it?.city ?: "" // Update cityInput when a suggestion is selected
+                        cityInput = it?.city ?: ""
                     },
-                    onCityInputChanged = { cityInput = it }, // Update cityInput on text change
-                    cityInputValue = cityInput // Pass cityInput to the composable
+                    onCityInputChanged = { cityInput = it },
+                    cityInputValue = cityInput
                 )
 
                 Spacer(modifier = Modifier.height(8.dp).background(Color(0xFFFF768B)))
@@ -242,7 +240,6 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                 CommonDivider()
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Gender Preference Selection
                 Column(Modifier.fillMaxWidth()) {
                     Text(
                         "I'm looking for:",
@@ -331,7 +328,7 @@ fun FTSProfileScreen(navController: NavController, vm: TCViewModel) {
                         vm.popupNotification.value =
                             Event("Please fill all fields and upload a profile picture.")
                     } else {
-                        coroutineScope.launch { // Launch a coroutine here
+                        coroutineScope.launch {
                             val addressToSave = selectedCity?.city ?: cityInput.ifBlank { null }
                             val latToSave = selectedCity?.lat
                             val longToSave = selectedCity?.lng
@@ -432,39 +429,36 @@ fun ProfileImage1(imageUrl : String?,vm: TCViewModel) {
 fun CityAutocompleteTextField(
     vm: TCViewModel,
     onCitySelected: (CityData?) -> Unit,
-    onCityInputChanged: (String) -> Unit, // New callback for text input changes
-    cityInputValue: String // New parameter for controlling the text field's value
+    onCityInputChanged: (String) -> Unit,
+    cityInputValue: String
 ) {
     val allCities by vm.cities.collectAsState()
-    // var text by remember { mutableStateOf("") } // Removed local text state
     var expanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     // Case-insensitive filtering
-    val cities = remember(cityInputValue, allCities) { // Use cityInputValue for filtering
+    val cities = remember(cityInputValue, allCities) {
         if (cityInputValue.isBlank()) emptyList()
         else allCities.filter {
             it.city?.lowercase()?.contains(cityInputValue.lowercase()) == true
         }
     }
 
-    LaunchedEffect(cityInputValue) { // Use cityInputValue for LaunchedEffect
+    LaunchedEffect(cityInputValue) {
         vm.searchCities(cityInputValue)
     }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().menuAnchor().onFocusChanged {
-                // Removed the logic that clears text if no suggestion is selected
-                if (!it.isFocused && !expanded) { // Close dropdown when focus is lost and not expanded
-                    // If the text field loses focus and no item was selected,
-                    // we want to keep the user's input.
-                    // The TCViewModel will handle geocoding for this input if no CityData was selected.
+
+                if (!it.isFocused && !expanded) {
+                    TODO()
                 }
             },
-            value = cityInputValue, // Use cityInputValue as the value
+            value = cityInputValue,
             onValueChange = {
-                onCityInputChanged(it) // Call the new callback
+                onCityInputChanged(it)
                 expanded = it.isNotEmpty()
             },
             label = { Text("City", fontFamily = deliusFontFamily, color = Color.Black) },
@@ -483,7 +477,6 @@ fun CityAutocompleteTextField(
                         text = { Text("${cityData.city}, ${cityData.country}", fontFamily = deliusFontFamily) },
                         onClick = {
                             onCitySelected(cityData)
-                            // text = cityData.city ?: "" // Removed local text update
                             expanded = false
                             focusManager.clearFocus()
                         }

@@ -82,14 +82,6 @@ fun Splash(alpha: Float) {
             .fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-//        Icon(
-//            modifier = Modifier
-//                .size(120.dp)
-//                .alpha(alpha = alpha),
-//            imageVector = Icons.Default.Email,
-//            contentDescription = "Logo Icon",
-//            tint = Color.White
-//        )
         Image(
             painter = painterResource(R.drawable.logo_sub_1_fixed),
             contentDescription = null,

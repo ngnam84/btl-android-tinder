@@ -89,7 +89,7 @@ fun SwipeAppNavigation() {
     val navController = rememberNavController()
     val vm = hiltViewModel<TCViewModel>()
 
-    com.btl.tinder.utils.RequestNotificationPermission()
+    RequestNotificationPermission()
 
     NotificationMessage(vm = vm)
 

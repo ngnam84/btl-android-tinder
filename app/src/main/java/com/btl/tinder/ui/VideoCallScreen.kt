@@ -124,14 +124,14 @@ class VideoCallScreen : ComponentActivity() {
                                     try {
                                         newCall.join(create = true)
                                         callStartTime = System.currentTimeMillis()
-                                        Log.d("VideoCallScreen", "✅ Joined call successfully")
+                                        Log.d("VideoCallScreen", "Joined call successfully")
                                     } catch (e: Exception) {
-                                        Log.e("VideoCallScreen", "❌ Failed to join call: ${e.message}")
+                                        Log.e("VideoCallScreen", "Failed to join call: ${e.message}")
                                         finish()
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("VideoCallScreen", "❌ Setup error: ${e.message}")
+                                Log.e("VideoCallScreen", "Setup error: ${e.message}")
                                 finish()
                             }
                         } else {
@@ -148,13 +148,13 @@ class VideoCallScreen : ComponentActivity() {
                             activeCall.state.connection.collect { connection ->
                                 if (connection is io.getstream.video.android.core.RealtimeConnection.Connected) {
                                     wasConnected = true
-                                    Log.d("VideoCallScreen", "✅ Connection: CONNECTED")
+                                    Log.d("VideoCallScreen", "Connection: CONNECTED")
                                 }
 
                                 if (connection is io.getstream.video.android.core.RealtimeConnection.Disconnected && wasConnected) {
-                                    Log.d("VideoCallScreen", "⚠️ Connection: DISCONNECTED")
+                                    Log.d("VideoCallScreen", "Connection: DISCONNECTED")
                                     if (!isHandlingCallEnd.get() && !messageSentFlag) {
-                                        Log.d("VideoCallScreen", "✅ Calling handleCallEnd from connection listener")
+                                        Log.d("VideoCallScreen", "Calling handleCallEnd from connection listener")
                                         handleCallEnd(activeCall, coroutineScope)
                                     }
                                 }
@@ -164,7 +164,7 @@ class VideoCallScreen : ComponentActivity() {
                         LaunchedEffect(activeCall) {
                             try {
                                 activeCall.subscribe { event ->
-                                    Log.d("VideoCallScreen", "📞 Event: ${event::class.simpleName}")
+                                    Log.d("VideoCallScreen", "Event: ${event::class.simpleName}")
 
                                     when (event) {
                                         is io.getstream.video.android.core.events.CallEndedSfuEvent -> {
@@ -180,7 +180,7 @@ class VideoCallScreen : ComponentActivity() {
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("VideoCallScreen", "❌ Subscribe error: ${e.message}", e)
+                                Log.e("VideoCallScreen", "Subscribe error: ${e.message}", e)
                             }
                         }
 
@@ -188,13 +188,13 @@ class VideoCallScreen : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                             call = activeCall,
                             onBackPressed = {
-                                Log.d("VideoCallScreen", "🔙 Back pressed - entering PiP mode")
+                                Log.d("VideoCallScreen", "Back pressed - entering PiP mode")
                                 enterPipMode()
                             },
                             onCallAction = { action ->
                                 when (action) {
                                     is LeaveCall -> {
-                                        Log.d("VideoCallScreen", "🛑 LeaveCall action - ending call")
+                                        Log.d("VideoCallScreen", "LeaveCall action - ending call")
                                         handleCallEnd(activeCall, coroutineScope)
                                     }
                                     is ToggleCamera -> {
@@ -218,7 +218,7 @@ class VideoCallScreen : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        Log.d("VideoCallScreen", "👤 User leave hint - entering PiP")
+        Log.d("VideoCallScreen", "User leave hint - entering PiP")
         enterPipMode()
     }
 
@@ -230,9 +230,9 @@ class VideoCallScreen : ComponentActivity() {
         isInPipMode = isInPictureInPictureMode
 
         if (isInPictureInPictureMode) {
-            Log.d("VideoCallScreen", "🖼️ Entered PiP mode")
+            Log.d("VideoCallScreen", "Entered PiP mode")
         } else {
-            Log.d("VideoCallScreen", "🖼️ Exited PiP mode")
+            Log.d("VideoCallScreen", "Exited PiP mode")
 
             if (!isFinishing) {
             }
@@ -250,18 +250,18 @@ class VideoCallScreen : ComponentActivity() {
                     val result = enterPictureInPictureMode(params)
 
                     if (result) {
-                        Log.d("VideoCallScreen", "✅ Successfully entered PiP mode")
+                        Log.d("VideoCallScreen", "Successfully entered PiP mode")
                     } else {
-                        Log.w("VideoCallScreen", "⚠️ Failed to enter PiP mode")
+                        Log.w("VideoCallScreen", "Failed to enter PiP mode")
                     }
                 } catch (e: Exception) {
-                    Log.e("VideoCallScreen", "❌ PiP error: ${e.message}", e)
+                    Log.e("VideoCallScreen", "PiP error: ${e.message}", e)
                 }
             } else {
-                Log.w("VideoCallScreen", "⚠️ Device does not support PiP")
+                Log.w("VideoCallScreen", "Device does not support PiP")
             }
         } else {
-            Log.w("VideoCallScreen", "⚠️ PiP requires Android O (API 26) or higher")
+            Log.w("VideoCallScreen", "PiP requires Android O (API 26) or higher")
         }
     }
 
@@ -286,23 +286,23 @@ class VideoCallScreen : ComponentActivity() {
             currentCall?.let { call ->
                 try {
                     call.leave()
-                    Log.d("VideoCallScreen", "📞 Call left in onDestroy")
+                    Log.d("VideoCallScreen", "Call left in onDestroy")
                 } catch (e: Exception) {
-                    Log.e("VideoCallScreen", "❌ Error leaving call in onDestroy: ${e.message}")
+                    Log.e("VideoCallScreen", "Error leaving call in onDestroy: ${e.message}")
                 }
             }
         }
     }
 
     private fun handleCallEnd(call: Call, coroutineScope: kotlinx.coroutines.CoroutineScope) {
-        Log.d("VideoCallScreen", "🔄 handleCallEnd() called")
+        Log.d("VideoCallScreen", "handleCallEnd() called")
 
         if (!isHandlingCallEnd.compareAndSet(false, true)) {
-            Log.w("VideoCallScreen", "❌ handleCallEnd() already in progress")
+            Log.w("VideoCallScreen", "handleCallEnd() already in progress")
             return
         }
 
-        Log.d("VideoCallScreen", "✅ handleCallEnd() started")
+        Log.d("VideoCallScreen", "handleCallEnd() started")
 
         coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
             try {
@@ -320,11 +320,11 @@ class VideoCallScreen : ComponentActivity() {
                     }
                 }
 
-                if (durationInMs != null && durationInMs < 0) {
+                if (durationInMs < 0) {
                     durationInMs = 0L
                 }
 
-                val durationText = if (durationInMs != null && durationInMs > 0) {
+                val durationText = if (durationInMs > 0) {
                     formatCallDuration(durationInMs)
                 } else {
                     "0:00"
@@ -339,20 +339,20 @@ class VideoCallScreen : ComponentActivity() {
                 try {
                     val connection = call.state.connection.value
                     if (connection !is io.getstream.video.android.core.RealtimeConnection.Disconnected) {
-                        Log.d("VideoCallScreen", "📞 Leaving call")
+                        Log.d("VideoCallScreen", "Leaving call")
                         call.leave()
                     }
                 } catch (e: Exception) {
-                    Log.w("VideoCallScreen", "⚠️ Leave error: ${e.message}")
+                    Log.w("VideoCallScreen", "Leave error: ${e.message}")
                 }
 
             } catch (e: Exception) {
-                Log.e("VideoCallScreen", "❌ handleCallEnd error: ${e.message}", e)
+                Log.e("VideoCallScreen", "handleCallEnd error: ${e.message}", e)
             } finally {
                 isHandlingCallEnd.set(false)
 
                 if (!isFinishing && !isDestroyed) {
-                    Log.d("VideoCallScreen", "🚪 Finishing activity")
+                    Log.d("VideoCallScreen", "Finishing activity")
                     finish()
                 }
             }
@@ -386,13 +386,13 @@ class VideoCallScreen : ComponentActivity() {
 
             channel.sendMessage(message).enqueue { result ->
                 if (result.isSuccess) {
-                    Log.d("VideoCallScreen", "✅ Message sent successfully")
+                    Log.d("VideoCallScreen", "Message sent successfully")
                 } else {
-                    Log.e("VideoCallScreen", "❌ Failed to send message: ${result.errorOrNull()?.message}")
+                    Log.e("VideoCallScreen", "Failed to send message: ${result.errorOrNull()?.message}")
                 }
             }
         } catch (e: Exception) {
-            Log.e("VideoCallScreen", "❌ Send message error: ${e.message}", e)
+            Log.e("VideoCallScreen", "Send message error: ${e.message}", e)
         }
     }
 

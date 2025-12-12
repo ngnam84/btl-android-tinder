@@ -69,7 +69,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.collectAsState
 import com.btl.tinder.data.InterestData
 import androidx.compose.foundation.layout.Spacer
-import com.btl.tinder.FinalInterestValidator
+import com.btl.tinder.data.FinalInterestValidator
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.OutlinedTextField
@@ -706,7 +706,6 @@ fun InterestsSelector(
         viewModel.loadAllInterests()
     }
 
-    // THÊM DEBUG LOG NÀY
     LaunchedEffect(allInterests) {
         android.util.Log.d("InterestSelector", "allInterests size: ${allInterests.size}")
     }
@@ -806,7 +805,7 @@ fun InterestsSelector(
             }
         }
 
-        // Add new button - LUÔN HIỂN THỊ khi đang gõ
+        // Add new button
         if (searchQuery.length >= 2 && validationResult == null) {
             Spacer(Modifier.height(8.dp))
             Card(
@@ -861,7 +860,6 @@ fun InterestsSelector(
             }
         }
 
-        // New interest
         AnimatedVisibility(validationResult is FinalInterestValidator.Result.NewInterest) {
             (validationResult as? FinalInterestValidator.Result.NewInterest)?.let { new ->
                 Spacer(Modifier.height(8.dp))

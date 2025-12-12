@@ -140,7 +140,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color.White)
                 }
-            } else if (matchedUsers.isEmpty()) { // If no matches at all
+            } else if (matchedUsers.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -154,8 +154,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                         fontFamily = playpenFontFamily
                     )
                 }
-            } else { // Matched users exist
-                // Horizontal list of friend avatars (all matched users)
+            } else {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,7 +167,7 @@ fun FriendPostScreen(navController: NavController, vm: TCViewModel) {
                     }
                 }
 
-                if (friendPosts.isEmpty()) { // Matched users exist, but no posts yet
+                if (friendPosts.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -224,7 +223,6 @@ fun FriendAvatar(friend: UserData) {
                 .border(2.dp, Color.White, CircleShape)
                 .shadow(4.dp, CircleShape)
         )
-        // Removed Text for username
     }
 }
 
@@ -441,7 +439,7 @@ fun VideoPlayer(url: String) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(url)))
             prepare()
-            playWhenReady = false // Autoplay can be set to true if desired
+            playWhenReady = false
         }
     }
 

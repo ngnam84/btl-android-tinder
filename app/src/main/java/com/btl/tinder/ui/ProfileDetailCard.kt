@@ -56,7 +56,7 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
         vm.getPostsForUser(userId)
     }
 
-    if (user == null || userMatch == null) {
+    if (user == null) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
             Text(text = "User not found.", color = Color.White)
             IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
@@ -91,7 +91,6 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 }
             }
 
-            // User Info Section
             item {
                 Column(
                     modifier = Modifier
@@ -193,7 +192,6 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 }
             }
 
-            // Posts Title Section
             item {
                 Text(
                     text = "Posts",
@@ -205,7 +203,6 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
                 )
             }
 
-            // Posts Feed Section
             if (posts.isEmpty()) {
                 item {
                     Box(
@@ -233,7 +230,6 @@ fun ProfileDetailScreen(userId: String, navController: NavController, vm: TCView
             }
         }
 
-        // Top buttons, over everything
         Row(
             modifier = Modifier
                 .fillMaxWidth()

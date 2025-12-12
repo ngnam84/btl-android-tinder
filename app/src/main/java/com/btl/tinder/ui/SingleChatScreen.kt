@@ -46,7 +46,6 @@ class SingleChatScreen : ComponentActivity() {
         val userId = firebaseUser?.uid ?: ""
         val userName = firebaseUser?.displayName ?: "User"
 
-        // Tạo callId từ channelId (loại bỏ prefix "messaging:")
         val callId = channelId.replace("messaging:", "").replace(":", "_")
 
         setContent {
@@ -80,7 +79,7 @@ class SingleChatScreen : ComponentActivity() {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(top = 7.dp, end = 50.dp) // Padding nhỏ để gắn chặt với header
+                            .padding(top = 7.dp, end = 50.dp)
                     ) {
                         VideoCallButton(
                             onVideoCallClick = {
@@ -114,7 +113,7 @@ class SingleChatScreen : ComponentActivity() {
         }
     }
 }
-// ui nút camc
+
 @Composable
 fun VideoCallButton(
     onVideoCallClick: () -> Unit,

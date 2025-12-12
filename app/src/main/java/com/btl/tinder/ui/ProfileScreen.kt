@@ -135,7 +135,7 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
             }
 
             item {
-                Spacer(Modifier.height(100.dp)) // Space for bottom nav
+                Spacer(Modifier.height(100.dp))
             }
         }
 
@@ -148,7 +148,6 @@ fun ProfileScreen(navController: NavController, vm: TCViewModel) {
         }
     }
 }
-
 
 @Composable
 fun ProfileHeader(userData: UserData, navController: NavController) {
@@ -266,7 +265,6 @@ fun ProfileHeader(userData: UserData, navController: NavController) {
         }
     }
 }
-
 
 @Composable
 private fun TopButtons(navController: NavController) {

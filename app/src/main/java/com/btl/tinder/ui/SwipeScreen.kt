@@ -1,5 +1,6 @@
 package com.btl.tinder.ui
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -221,6 +222,7 @@ private fun CircleButton(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
 private fun ProfileCard(
     modifier: Modifier,

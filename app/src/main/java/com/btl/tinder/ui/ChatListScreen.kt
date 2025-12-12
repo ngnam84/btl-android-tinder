@@ -31,18 +31,18 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
 
     LaunchedEffect(userData, firebaseUser) {
         if (firebaseUser == null || userData?.userId == null) {
-            Log.e("ChatListScreen", "❌ Firebase user or userData is null.")
+            Log.e("ChatListScreen", "Firebase user or userData is null.")
             return@LaunchedEffect
         }
 
         // Kiểm tra xem đã connect chưa
         val currentUser = client.clientState.user.value
         if (currentUser != null && currentUser.id == userData.userId) {
-            Log.d("ChatListScreen", "✅ Already connected to Stream")
+            Log.d("ChatListScreen", "Already connected to Stream")
             return@LaunchedEffect
         }
 
-        Log.d("ChatListScreen", "🔄 Connecting to Stream...")
+        Log.d("ChatListScreen", "Connecting to Stream...")
 
         firebaseUser.getIdToken(true)
             .addOnSuccessListener {
@@ -55,15 +55,15 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
 
                     client.connectUser(user, streamToken).enqueue { result ->
                         if (result.isSuccess) {
-                            Log.d("ChatListScreen", "✅ Connected to Stream successfully")
+                            Log.d("ChatListScreen", "Connected to Stream successfully")
                         } else {
-                            Log.e("ChatListScreen", "❌ Failed to connect: ${result.errorOrNull()?.message}")
+                            Log.e("ChatListScreen", "Failed to connect: ${result.errorOrNull()?.message}")
                         }
                     }
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("ChatListScreen", "❌ Token refresh failed: ${e.message}")
+                Log.e("ChatListScreen", "Token refresh failed: ${e.message}")
             }
     }
 
@@ -81,10 +81,7 @@ fun ChatListScreen(navController: NavController, vm: TCViewModel) {
                 InitializationState.COMPLETE -> {
                     ChatTheme {
                         ChannelsScreen(
-//                             title = "Chats",
-//                             onChannelClick = { channel: Channel ->
-                                // ✅ Mở Activity thay vì navigate
-                            title = "Matches",
+                            title = "Messages",
                             onChannelClick = { channel ->
                                 context.startActivity(
                                     SingleChatScreen.getIntent(context, channel.cid)

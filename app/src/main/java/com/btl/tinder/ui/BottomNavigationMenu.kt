@@ -74,16 +74,9 @@ fun BottomNavigationMenu(
             .padding(bottom = 70.dp)
             .padding(horizontal = 16.dp)
             .graphicsLayer {
-                // Blur kính trong suốt
-//                renderEffect = RenderEffect
-//                    .BlurEffect(
-//                        radiusX = 30f,
-//                        radiusY = 30f,
-//                        edgeTreatment = TileMode.Decal
-//                    )
             }
             .background(
-                color = Color.Black.copy(alpha = 0.35f),   // đen nhám trong suốt
+                color = Color.Black.copy(alpha = 0.35f),
                 shape = RoundedCornerShape(40.dp)
             )
             .border(
@@ -96,7 +89,7 @@ fun BottomNavigationMenu(
                 ),
                 RoundedCornerShape(40.dp)
             )
-            .height(60.dp) // tăng chiều cao
+            .height(60.dp)
             .shadow(
                 20.dp,
                 RoundedCornerShape(40.dp),
@@ -127,7 +120,7 @@ fun BottomNavigationMenu(
                     contentDescription = null,
                     modifier = Modifier.size(30.dp),
                     colorFilter = if (isSelected)
-                        ColorFilter.tint(Color(0xFFF8F8F8)) // tím nổi bật
+                        ColorFilter.tint(Color(0xFFF8F8F8))
                     else
                         ColorFilter.tint(Color.White.copy(alpha = 0.7f))
                 )
@@ -135,10 +128,6 @@ fun BottomNavigationMenu(
         }
     }
 }
-
-
-
-
 
 @Composable
 fun BottomNavigationMenu1(

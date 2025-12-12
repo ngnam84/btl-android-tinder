@@ -233,7 +233,7 @@ fun CreatePostScreen(navController: NavController, vm: TCViewModel) {
                                         .background(Color.Black.copy(alpha = 0.4f), CircleShape)
                                 )
                             }
-                            // Delete Button
+
                             IconButton(
                                 onClick = {
                                     val updatedMedia = selectedMedia.toMutableList()

@@ -151,7 +151,7 @@ fun LoginScreen(navController: NavController, vm: TCViewModel) {
                     val description = if (passwordVisible.value) "Hide password" else "Show password"
 
                     IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
-                        Icon(imageVector = image, description, tint = Color.Black) // Changed icon color to black
+                        Icon(imageVector = image, description, tint = Color.Black)
                     }
                 },
                 singleLine = true

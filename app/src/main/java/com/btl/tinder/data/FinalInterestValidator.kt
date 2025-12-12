@@ -1,7 +1,6 @@
-package com.btl.tinder
+package com.btl.tinder.data
 
 import android.util.Log
-import com.btl.tinder.data.InterestData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
