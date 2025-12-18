@@ -452,9 +452,9 @@ fun CityAutocompleteTextField(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().menuAnchor().onFocusChanged {
 
-                if (!it.isFocused && !expanded) {
-                    TODO()
-                }
+//                if (!it.isFocused && !expanded) {
+//                    TODO()
+//                }
             },
             value = cityInputValue,
             onValueChange = {
