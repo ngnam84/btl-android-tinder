@@ -3,7 +3,7 @@ package com.btl.tinder.ui
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.PictureInPictureParams
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -72,11 +72,12 @@ class VideoCallScreen : ComponentActivity() {
             if (!view.isInEditMode) {
                 SideEffect {
                     val window = (view.context as Activity).window
+                    WindowCompat.setDecorFitsSystemWindows(window, false) // Thêm dòng này
                     WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) { // Thay đổi từ statusBarsPadding()
                 VideoTheme {
                     var call by remember { mutableStateOf<Call?>(null) }
                     val coroutineScope = rememberCoroutineScope()
@@ -257,8 +258,6 @@ class VideoCallScreen : ComponentActivity() {
                 } catch (e: Exception) {
                     Log.e("VideoCallScreen", "PiP error: ${e.message}", e)
                 }
-            } else {
-                Log.w("VideoCallScreen", "Device does not support PiP")
             }
         } else {
             Log.w("VideoCallScreen", "PiP requires Android O (API 26) or higher")
@@ -314,7 +313,8 @@ class VideoCallScreen : ComponentActivity() {
                     } else {
                         if (callStartTime > 0) {
                             durationInMs = System.currentTimeMillis() - callStartTime
-                        } else {
+                        }
+                        else {
                             durationInMs = 0
                         }
                     }
